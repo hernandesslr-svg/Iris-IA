@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.graphics.ImageFormat
+import android.graphics.Bitmap
 import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
@@ -31,6 +32,10 @@ class IrisCameraGestures(private val activity: Activity, private val onGesture: 
     private var lastMotionAt = 0L
     private var lastTriggerAt = 0L
     private var previous: IntArray? = null
+    private var landmarks: IrisHandLandmarks? = null
+    private var lastLandmarkAt = 0L
+    private var previousGesture: String? = null
+    private var stableGestures = 0
 
     fun start(): Boolean {
         if (activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return false
@@ -39,6 +44,7 @@ class IrisCameraGestures(private val activity: Activity, private val onGesture: 
         thread = worker
         handler = Handler(worker.looper)
         try {
+            landmarks = IrisHandLandmarks(activity)
             val manager = activity.getSystemService(CameraManager::class.java)
             val id = manager.cameraIdList.firstOrNull {
                 manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
@@ -75,6 +81,29 @@ class IrisCameraGestures(private val activity: Activity, private val onGesture: 
 
     private fun process(image: Image) {
         if (!active.get()) return
+        val nowFrame = SystemClock.elapsedRealtime()
+        if (nowFrame - lastLandmarkAt >= 220L) {
+            lastLandmarkAt = nowFrame
+            try {
+                val gray = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+                val yPlane = image.planes[0]
+                val bytes = yPlane.buffer
+                val colors = IntArray(image.width * image.height)
+                for (row in 0 until image.height) for (col in 0 until image.width) {
+                    val v = bytes.get(row * yPlane.rowStride + col * yPlane.pixelStride).toInt() and 255
+                    colors[row * image.width + col] = android.graphics.Color.rgb(v,v,v)
+                }
+                gray.setPixels(colors, 0, image.width, 0, 0, image.width, image.height)
+                val gesture = landmarks?.classify(gray)
+                gray.recycle()
+                if (gesture != null && gesture == previousGesture) stableGestures++
+                else { previousGesture = gesture; stableGestures = 1 }
+                if (gesture != null && stableGestures == 3 && nowFrame - lastTriggerAt > 1800) {
+                    lastTriggerAt = nowFrame
+                    activity.runOnUiThread { if (active.get()) onGesture(gesture) }
+                }
+            } catch (_: Exception) { }
+        }
         val plane = image.planes[0]
         val buffer = plane.buffer
         val stride = plane.rowStride
@@ -129,6 +158,8 @@ class IrisCameraGestures(private val activity: Activity, private val onGesture: 
         camera = null
         reader = null
         previous = null
+        try { landmarks?.close() } catch (_: Exception) {}
+        landmarks = null
         thread?.quitSafely()
         thread = null
         handler = null
