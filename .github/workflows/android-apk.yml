@@ -1,9 +1,8 @@
-name: Build Android APK
+name: Iris Android - compilar prototipo
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["src/**", "index.html", "package.json", "package-lock.json", "vite.config.js", "capacitor.config.json", ".github/workflows/android-apk.yml", "scripts/**"]
 permissions:
   contents: read
 jobs:
@@ -11,88 +10,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Restore the original Nara trained nucleus from the preserved ZIP
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from zipfile import ZipFile
-          archive = Path("nara-interface-atualizada.zip")
-          if not archive.is_file():
-              raise SystemExit("ZIP original do núcleo Nara não encontrado")
-          with ZipFile(archive) as z:
-              source = z.read("grokws/src/lib/nara-core.ts").decode("utf-8")
-          source = source.replace('import type { ModeId } from "@/lib/nara-modes";', '')
-          source = source.replace("ModeId", "string")
-          target = Path("src/nara-core.ts")
-          target.write_text(source, encoding="utf-8")
-          print(f"Núcleo preservado integrado: {len(source)} caracteres")
-          if "TRAINED_CORE" not in source or "buildSystemPrompt" not in source:
-              raise SystemExit("O núcleo extraído está incompleto")
-          PY
-      - name: Install dependencies
-        run: npm install
-      - name: Download local ONNX language model into APK assets
-        run: |
-          python -m pip install --quiet huggingface_hub
-          python - <<'PY'
-          from huggingface_hub import snapshot_download
-          snapshot_download(
-              repo_id="onnx-community/SmolLM2-135M-Instruct-ONNX",
-              local_dir="public/models/onnx-community/SmolLM2-135M-Instruct-ONNX",
-              allow_patterns=["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json", "vocab.json", "merges.txt", "quantize_config.json", "onnx/model_q4.onnx"],
-          )
-          PY
-      - name: Bundle ONNX Runtime Web files for offline inference
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import shutil
-          root = Path("node_modules")
-          target = Path("public/onnx-runtime")
-          target.mkdir(parents=True, exist_ok=True)
-          for pattern in (
-              "@huggingface/transformers/dist/*.mjs",
-              "**/onnxruntime-web/dist/*.mjs",
-              "**/onnxruntime-web/dist/*.wasm",
-          ):
-              for source in root.glob(pattern):
-                  shutil.copy2(source, target / source.name)
-          files = sorted(p.name for p in target.iterdir() if p.is_file())
-          print("\n".join(files))
-          if not any(name.endswith(".wasm") for name in files):
-              raise SystemExit("Nenhum arquivo WASM do ONNX Runtime foi encontrado")
-          PY
-      - name: Build web app with bundled local AI model
-        run: npm run build
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
-      - name: Generate Android project
-        run: npx cap add android
-      - name: Sync Capacitor
-        run: npx cap sync android
-      # Reuse one debug signing key across builds so APK updates install over the same app.
-      - name: Restore persistent debug signing key
-        uses: actions/cache@v4
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          path: ~/.android/debug.keystore
-          key: nara-android-debug-signing-v1
-      - name: Ensure debug signing key exists
+          gradle-version: '8.9'
+      - name: Extrair codigo nativo da Iris
         run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
-      - name: Build debug APK
-        working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug
+          python3 - <<'PY'
+          import zipfile, pathlib
+          archive = pathlib.Path('Iris-Android-preparado-para-GitHub.zip')
+          with zipfile.ZipFile(archive) as z:
+              for item in z.infolist():
+                  if item.is_dir(): continue
+                  path = pathlib.PurePosixPath(item.filename)
+                  if not path.parts or path.parts[0] != 'Iris-Android': continue
+                  dest = pathlib.Path(*path.parts[1:])
+                  if not dest.parts or '..' in dest.parts: raise ValueError(item.filename)
+                  dest.parent.mkdir(parents=True, exist_ok=True)
+                  dest.write_bytes(z.read(item))
+          PY
+      - name: Compilar Iris Android (sem inferencia neural)
+        run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: nara-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: iris-android-prototipo-sem-neural
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 14

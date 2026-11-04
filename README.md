@@ -1,10 +1,14 @@
-# Nara IA — preparação para APK Android
+# Iris IA — Android nativo
 
-O repositório usa Vite + React + Capacitor e inclui um workflow do GitHub Actions para gerar APK debug.
+Este repositório agora é dedicado à **Iris**. O código Android Kotlin está preservado no arquivo `Iris-Android-preparado-para-GitHub.zip`; o workflow extrai o projeto e tenta compilar um APK de teste.
 
-## Gerar APK
-1. Abra a aba Actions deste repositório.
-2. Selecione Build Android APK e clique em Run workflow na branch main.
-3. Ao concluir, baixe o artefato nara-debug-apk no resultado da execução.
+## Estado real
+- Interface Android, memória SQLite, respostas locais e recursos de voz: código de protótipo disponível no ZIP.
+- IRIS Neural Core: **estrutura preparada, sem inferência neural funcional**.
+- Pesos Qwen3 1.7B GGUF: **não incluídos**.
+- APK com IA neural offline: **ainda não disponível**.
 
-O APK é de desenvolvimento, não uma versão release assinada. O modelo local experimental exige internet no primeiro download (cerca de 1,6 GB) e suporte WebGPU no Android WebView; isso precisa ser testado no aparelho real.
+## Compilação
+Abra **Actions → Iris Android - compilar prototipo → Run workflow**. O artefato esperado é `iris-android-prototipo-sem-neural`. A compilação precisa ser confirmada no GitHub Actions antes de instalar.
+
+O código antigo da Nara e seu workflow foram removidos da árvore atual. O histórico Git permanece disponível para recuperação. Não coloque modelos GGUF gigantes no Git.
