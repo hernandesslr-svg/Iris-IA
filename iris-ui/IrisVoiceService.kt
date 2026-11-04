@@ -23,6 +23,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var hearing = false
     private var talking = false
     private var activeUntil = 0L
+    private var lastPartial = ""
     private val retry = Runnable { listen() }
     private val channel = "iris_voice"
     override fun onCreate() {
@@ -54,18 +55,21 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR")
                 putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,true)
             })
         } catch (_: Exception) { scheduleRetry() }
     }
     private fun scheduleRetry() {
         hearing = false
         handler.removeCallbacks(retry)
-        if (running && !talking) handler.postDelayed(retry,1200)
+        if (running && !talking) handler.postDelayed(retry,350)
     }
     override fun onResults(results: Bundle?) {
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+        val candidate = text ?: lastPartial
+        lastPartial = ""
         scheduleRetry()
-        if (!text.isNullOrBlank()) handleSpeech(text)
+        if (candidate.isNotBlank()) handleSpeech(candidate)
     }
     private fun handleSpeech(text:String) {
         val normalized = Normalizer.normalize(text.lowercase(Locale.ROOT),Normalizer.Form.NFD)
@@ -106,7 +110,9 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onRmsChanged(rmsdB:Float) {}
     override fun onBufferReceived(buffer:ByteArray?) {}
     override fun onEndOfSpeech() {}
-    override fun onPartialResults(partialResults:Bundle?) {}
+    override fun onPartialResults(partialResults:Bundle?) {
+        lastPartial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+    }
     override fun onEvent(eventType:Int,params:Bundle?) {}
     override fun onInit(status:Int) {
         if (status != TextToSpeech.SUCCESS) return
