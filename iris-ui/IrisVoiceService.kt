@@ -21,6 +21,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var neural: IrisNeuralCore? = null
     private var running = false
     private var hearing = false
+    private var talking = false
     private var activeUntil = 0L
     private val retry = Runnable { listen() }
     private val channel = "iris_voice"
@@ -45,7 +46,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     }
     override fun onStartCommand(intent: Intent?, flags:Int, startId:Int):Int = START_STICKY
     private fun listen() {
-        if (!running || hearing || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
+        if (!running || hearing || talking || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
         try {
             if (recognizer == null) recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { it.setRecognitionListener(this) }
             hearing = true
@@ -59,7 +60,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private fun scheduleRetry() {
         hearing = false
         handler.removeCallbacks(retry)
-        if (running) handler.postDelayed(retry,1200)
+        if (running && !talking) handler.postDelayed(retry,1200)
     }
     override fun onResults(results: Bundle?) {
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
@@ -78,21 +79,28 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             activeUntil = now + 50_000
             text
         } else return
-        if (command.isBlank()) { tts?.speak("Estou ouvindo.",TextToSpeech.QUEUE_FLUSH,null,"iris-ready"); return }
+        if (command.isBlank()) { speak("Estou ouvindo.","iris-ready"); return }
         val deviceResult = IrisDeviceControl.tryExecute(this,command)
         if (deviceResult != null) {
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",deviceResult))
-            tts?.speak(deviceResult,TextToSpeech.QUEUE_FLUSH,null,"iris-device")
+            speak(deviceResult,"iris-device")
             return
         }
         Thread {
             val answer = try { neural?.generateOrNull(command) } catch (_: Exception) { null }
             val spoken = answer ?: "Não consegui processar sua pergunta agora."
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",spoken))
-            handler.post { tts?.speak(spoken,TextToSpeech.QUEUE_FLUSH,null,"iris-answer") }
+            handler.post { speak(spoken,"iris-answer") }
         }.start()
     }
-    override fun onError(error:Int) = scheduleRetry()
+    private fun speak(text:String,id:String) {
+        talking = true
+        handler.removeCallbacks(retry)
+        recognizer?.cancel()
+        hearing = false
+        tts?.speak(text,TextToSpeech.QUEUE_FLUSH,null,id)
+    }
+    override fun onError(error:Int) { if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
     override fun onBeginningOfSpeech() {}
     override fun onRmsChanged(rmsdB:Float) {}
@@ -100,7 +108,19 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onEndOfSpeech() {}
     override fun onPartialResults(partialResults:Bundle?) {}
     override fun onEvent(eventType:Int,params:Bundle?) {}
-    override fun onInit(status:Int) { if(status==TextToSpeech.SUCCESS) tts?.language=Locale("pt","BR") }
+    override fun onInit(status:Int) {
+        if (status != TextToSpeech.SUCCESS) return
+        tts?.language=Locale("pt","BR")
+        tts?.setSpeechRate(0.94f)
+        tts?.setPitch(1.04f)
+        val pt = tts?.voices?.filter { it.locale.language == "pt" && it.locale.country == "BR" }
+        pt?.firstOrNull { !it.isNetworkConnectionRequired }?.let { tts?.voice = it }
+        tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId:String?) {}
+            override fun onDone(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
+            override fun onError(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
+        })
+    }
     override fun onBind(intent:Intent?):IBinder? = null
     override fun onDestroy() {
         running=false
