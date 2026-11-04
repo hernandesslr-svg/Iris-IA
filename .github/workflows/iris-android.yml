@@ -141,6 +141,9 @@ jobs:
           from zipfile import ZipFile
           from pathlib import Path
           import json
+          if not Path("iris-IA.zip").exists():
+              print("ZIP original ausente; mantendo classificador alternativo.")
+              raise SystemExit(0)
           with ZipFile("iris-IA.zip") as z:
               source=z.read("src/lib/iris-lm-weights.ts").decode("utf-8")
           marker="export const LM_WEIGHTS: LMWeights = "
