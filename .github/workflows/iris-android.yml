@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'Iris-Android-preparado-para-GitHub.zip'
+      - 'iris-native/**'
       - '.github/workflows/iris-android.yml'
 
 permissions:
@@ -77,50 +78,40 @@ jobs:
           existing = "\n".join(line for line in existing.splitlines() if not line.startswith("org.gradle.jvmargs="))
           props.write_text(existing + "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\n")
           PY
-      - name: Preparar carregamento offline e evitar bloqueio da interface
+      - name: Integrar llama.cpp JNI e conversa offline
         run: |
+          set -e
+          git clone --depth 1 --branch b6200 https://github.com/ggml-org/llama.cpp.git android-project/app/src/main/cpp/llama.cpp
+          cp iris-native/iris_native.cpp android-project/app/src/main/cpp/
+          cp iris-native/CMakeLists.txt android-project/app/src/main/cpp/
+          cp iris-native/IrisNeuralCore.kt android-project/app/src/main/java/com/iris/assistant/IrisNeuralCore.kt
           python3 - <<'PY'
           from pathlib import Path
-          base = Path("android-project/app/src/main/java/com/iris/assistant")
-          core = base / "IrisNeuralCore.kt"
-          s = core.read_text()
-          s = s.replace('import java.io.File', 'import java.io.File\nimport java.io.FileOutputStream')
-          s = s.replace('    fun status(): Status {', '''    fun ensureModelInstalled(): File {
-              val target = modelFile
-              if (target.isFile && target.length() >= MIN_MODEL_BYTES) return target
-              target.parentFile?.mkdirs()
-              val temporary = File(target.parentFile, target.name + ".partial")
-              try {
-                  context.assets.open(MODEL_FILENAME).use { source ->
-                      FileOutputStream(temporary).use { output -> source.copyTo(output, 1024 * 1024) }
-                  }
-                  check(temporary.length() >= MIN_MODEL_BYTES) { "Modelo GGUF incompleto" }
-                  if (target.exists()) target.delete()
-                  check(temporary.renameTo(target)) { "Falha ao instalar modelo offline" }
-                  return target
-              } finally {
-                  if (temporary.exists()) temporary.delete()
-              }
+          p=Path("android-project/app/build.gradle.kts")
+          s=p.read_text()
+          s += """
+          android {
+              defaultConfig { ndk { abiFilters += listOf("arm64-v8a") } }
+              externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt") } }
           }
-          fun status(): Status {''')
-          core.write_text(s)
-          activity = base / "MainActivity.kt"
-          s = activity.read_text()
-          old = 'val answer=neural.generateOrNull(msg) ?: respond(msg); addMessage("Iris",answer); if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris") ;scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }'
-          new = '''Thread {
-                      val answer = try {
-                          neural.ensureModelInstalled()
-                          neural.generateOrNull(msg) ?: respond(msg)
-                      } catch (_: Exception) { respond(msg) }
-                      runOnUiThread {
-                          if (isFinishing || isDestroyed) return@runOnUiThread
-                          addMessage("Iris", answer)
-                          if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris")
-                          scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
-                      }
-                  }.start()'''
-          assert old in s, "Trecho da conversa mudou; nao aplicar patch incorreto"
-          activity.write_text(s.replace(old,new))
+          """
+          p.write_text(s)
+          p=Path("android-project/app/src/main/java/com/iris/assistant/MainActivity.kt")
+          s=p.read_text()
+          old='val answer=neural.generateOrNull(msg) ?: respond(msg); addMessage("Iris",answer); if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris") ;scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }'
+          new='''Thread {
+              val answer = try { neural.generateOrNull(msg) ?: respond(msg) }
+                  catch (e: Exception) { "Falha no modelo neural: ${e.message}" }
+              runOnUiThread {
+                  if (!isFinishing && !isDestroyed) {
+                      addMessage("Iris",answer)
+                      if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris")
+                      scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
+                  }
+              }
+          }.start()'''
+          assert old in s
+          p.write_text(s.replace(old,new).replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ neural.close(); tts?.shutdown();'))
           PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
@@ -128,7 +119,7 @@ jobs:
       - name: Publicar APK para teste
         uses: actions/upload-artifact@v4
         with:
-          name: iris-android-com-qwen3-assets-sem-executor
+          name: iris-android-qwen3-neural-jni
           path: android-project/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
