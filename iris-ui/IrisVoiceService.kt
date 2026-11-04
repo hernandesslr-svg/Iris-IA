@@ -37,6 +37,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var running = false
     private var hearing = false
     private var talking = false
+    private var bargeInEnabled = true
+    private var listeningDuringTts = false
     private var activeUntil = 0L
     private var lastPartial = ""
     private val retry = Runnable { listen() }
@@ -73,6 +75,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
                 activityState.change(IrisActivity.IDLE)
                 scheduleRetry()
             }
+            "com.iris.assistant.ENABLE_BARGE_IN" -> bargeInEnabled = true
+            "com.iris.assistant.DISABLE_BARGE_IN" -> bargeInEnabled = false
             "com.iris.assistant.ENABLE_CLAPS" -> clapEnabled = true
             "com.iris.assistant.DISABLE_CLAPS" -> clapEnabled = false
             "com.iris.assistant.ENABLE_CUES" -> cuesEnabled = true
@@ -81,12 +85,13 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         return START_STICKY
     }
     private fun listen() {
-        if (!running || hearing || talking || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
+        if (!running || hearing || (talking && !bargeInEnabled) || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
         if (!micCoordinator.acquire("speech")) return
         try {
             if (recognizer == null) recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { it.setRecognitionListener(this) }
             hearing = true
-            activityState.change(IrisActivity.LISTENING)
+            listeningDuringTts = talking
+            if (!talking) activityState.change(IrisActivity.LISTENING)
             recognizer?.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR")
@@ -99,14 +104,30 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         hearing = false
         micCoordinator.release("speech")
         handler.removeCallbacks(retry)
-        if (running && !talking) handler.postDelayed(retry,350)
+        if (running && (!talking || bargeInEnabled)) handler.postDelayed(retry, if (talking) 650 else 350)
     }
     override fun onResults(results: Bundle?) {
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
         val candidate = text ?: lastPartial
         lastPartial = ""
         scheduleRetry()
+        if (talking) { if (isStopCommand(candidate)) stopSpeechAndListen(); return }
         if (candidate.isNotBlank() && !echoGuard.isEcho(candidate)) { diagnostics.recordRecognition(); handleSpeech(candidate) }
+    }
+    private fun isStopCommand(raw: String): Boolean {
+        val normalized = Normalizer.normalize(raw.lowercase(Locale.ROOT), Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}+"), "")
+        return listOf("iris pare", "iris parar", "pare de falar", "iris silencio", "cancele a resposta")
+            .any { normalized.contains(it) }
+    }
+    private fun stopSpeechAndListen() {
+        responseSerial++
+        tts?.stop()
+        talking = false
+        listeningDuringTts = false
+        audioGate.setGuard(false)
+        activityState.change(IrisActivity.IDLE)
+        scheduleRetry()
     }
     // Adaptado da logica original iris-local.ts: remove repeticoes da transcricao.
     private fun hearOnce(raw:String):String {
@@ -134,7 +155,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             cleaned
         } else return
         if (command.isBlank()) { speak(fillers.attention(),"iris-ready"); return }
-        if (normalized.contains("pare de falar") || normalized.contains("cancele a resposta")) {
+        if (isStopCommand(command)) {
             responseSerial++
             tts?.stop()
             talking = false
@@ -212,9 +233,11 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         echoGuard.record(safeText)
         audioGate.setGuard(true)
         handler.removeCallbacks(retry)
-        recognizer?.cancel()
-        hearing = false
-        micCoordinator.release("speech")
+        if (!bargeInEnabled) {
+            recognizer?.cancel()
+            hearing = false
+            micCoordinator.release("speech")
+        } else if (!hearing) handler.postDelayed({ if (running && talking) listen() }, 400)
         // No notification tone while TTS owns audio output.
         tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
@@ -245,6 +268,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onEndOfSpeech() {}
     override fun onPartialResults(partialResults:Bundle?) {
         lastPartial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+        if (talking && isStopCommand(lastPartial)) stopSpeechAndListen()
     }
     override fun onEvent(eventType:Int,params:Bundle?) {}
     override fun onInit(status:Int) {
