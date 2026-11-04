@@ -12,12 +12,16 @@ new=r'''    private lateinit var subtitle: TextView
             requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 78); return
         }
         val detector = IrisCameraGestures(this) { gesture ->
-            if (gesture == "WAVE") {
-                subtitle.text = "Aceno detectado. Iris está ouvindo."
-                startVoiceService()
+            when (gesture) {
+                "WAVE", "OPEN_PALM" -> { subtitle.text = "Mão aberta: Iris está ouvindo."; startVoiceService() }
+                "FIST" -> {
+                    subtitle.text = "Punho fechado: fala interrompida."
+                    startService(Intent(this, IrisVoiceService::class.java).setAction("com.iris.assistant.STOP_SPEECH"))
+                }
+                "VICTORY" -> { subtitle.text = "Sinal de V reconhecido."; startVoiceService() }
             }
         }
-        if (detector.start()) { cameraGestures = detector; subtitle.text = "Câmera ativa: acene para chamar a Iris." }
+        if (detector.start()) { cameraGestures = detector; subtitle.text = "Câmera ativa: palma para ouvir, punho para parar, V para chamar." }
         else subtitle.text = "Não foi possível iniciar a câmera frontal."
     }
     private val voiceReceiver = object : android.content.BroadcastReceiver() {
