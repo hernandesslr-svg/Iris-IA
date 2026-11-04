@@ -25,6 +25,9 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val audioGate = IrisAudioGate()
     private val fillers = IrisFillers()
     private val diagnostics = IrisVoiceDiagnostics()
+    private val echoGuard = IrisEchoGuard()
+    private val activityState = IrisActivityState()
+    @Volatile private var responseSerial = 0L
     private var microphoneActivity = false
     private var running = false
     private var hearing = false
@@ -61,6 +64,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         try {
             if (recognizer == null) recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { it.setRecognitionListener(this) }
             hearing = true
+            activityState.change(IrisActivity.LISTENING)
             recognizer?.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR")
@@ -79,7 +83,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         val candidate = text ?: lastPartial
         lastPartial = ""
         scheduleRetry()
-        if (candidate.isNotBlank()) { diagnostics.recordRecognition(); handleSpeech(candidate) }
+        if (candidate.isNotBlank() && !echoGuard.isEcho(candidate)) { diagnostics.recordRecognition(); handleSpeech(candidate) }
     }
     // Adaptado da logica original iris-local.ts: remove repeticoes da transcricao.
     private fun hearOnce(raw:String):String {
@@ -107,6 +111,23 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             cleaned
         } else return
         if (command.isBlank()) { speak(fillers.attention(),"iris-ready"); return }
+        if (normalized.contains("pare de falar") || normalized.contains("cancele a resposta")) {
+            responseSerial++
+            tts?.stop()
+            talking = false
+            audioGate.setGuard(false)
+            activityState.change(IrisActivity.IDLE)
+            scheduleRetry()
+            return
+        }
+        if (normalized.contains("quais sao suas capacidades")) {
+            val c = IrisCapabilities.probe(this)
+            val reply = "Posso conversar, guardar informações e executar comandos compatíveis. " +
+                (if (c.speechRecognition) "Reconhecimento de voz disponível. " else "Reconhecimento de voz indisponível. ") +
+                (if (c.weightsPresent) "Pesos estatísticos instalados." else "Pesos estatísticos indisponíveis.")
+            speak(reply, "iris-capabilities")
+            return
+        }
         val remembered = memory?.teach(command) ?: memory?.recall(command)
         if (remembered != null) {
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",remembered))
@@ -119,6 +140,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             speak(deviceResult,"iris-device")
             return
         }
+        val serial = ++responseSerial
+        activityState.change(IrisActivity.THINKING)
         Thread {
             val intent = IrisIntent.classify(command)
             val mood = statistical?.mood(command)?.takeIf { it.confident }?.label ?: IrisIntent.mood(command)
@@ -145,12 +168,18 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             val spoken = answer?.takeIf { it.isNotBlank() }
                 ?: local?.takeIf { it.length >= 8 }
                 ?: "Não consegui processar sua pergunta agora."
-            sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",spoken))
-            handler.post { speak(spoken,"iris-answer") }
+            handler.post {
+                if (running && serial == responseSerial) {
+                    sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",spoken))
+                    speak(spoken,"iris-answer")
+                }
+            }
         }.start()
     }
     private fun speak(text:String,id:String) {
         talking = true
+        activityState.change(IrisActivity.SPEAKING)
+        echoGuard.record(text)
         audioGate.setGuard(true)
         handler.removeCallbacks(retry)
         recognizer?.cancel()
@@ -181,13 +210,15 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         pt?.firstOrNull { !it.isNetworkConnectionRequired }?.let { tts?.voice = it }
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId:String?) {}
-            override fun onDone(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); scheduleRetry() } }
+            override fun onDone(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() } }
             override fun onError(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
         })
     }
     override fun onBind(intent:Intent?):IBinder? = null
     override fun onDestroy() {
         running=false
+        responseSerial++
+        activityState.change(IrisActivity.IDLE)
         handler.removeCallbacks(retry)
         recognizer?.cancel()
         recognizer?.destroy()
