@@ -5,6 +5,13 @@ start=s.index("    override fun onCreate(savedInstanceState:")
 end=s.index("    private fun normalize(",start)
 new=r'''    private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
+    private val voiceReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            val answer = intent?.getStringExtra("answer") ?: return
+            if (::subtitle.isInitialized) subtitle.text = answer
+        }
+    }
+
     private fun startVoiceService() {
         if (android.os.Build.VERSION.SDK_INT >= 23 &&
             checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -101,6 +108,10 @@ new=r'''    private lateinit var subtitle: TextView
         column.addView(subtitle,LinearLayout.LayoutParams(-1,160))
         entry = EditText(this)
         setContentView(root)
+        val voiceFilter = android.content.IntentFilter("com.iris.assistant.VOICE_REPLY")
+        if (android.os.Build.VERSION.SDK_INT >= 33)
+            registerReceiver(voiceReceiver,voiceFilter,android.content.Context.RECEIVER_NOT_EXPORTED)
+        else registerReceiver(voiceReceiver,voiceFilter)
         startVoiceService()
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(id: String?) { runOnUiThread { hud.speaking = true } }
@@ -110,6 +121,6 @@ new=r'''    private lateinit var subtitle: TextView
     }
 '''
 s=s[:start]+new+s[end:]
-s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ stopped = true; handler.removeCallbacks(restartSpeech); recognizer?.destroy(); neural.close(); tts?.shutdown();')
+s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ unregisterReceiver(voiceReceiver); neural.close(); tts?.shutdown();')
 p.write_text(s)
 print("Interface Iris instalada",p.stat().st_size)
