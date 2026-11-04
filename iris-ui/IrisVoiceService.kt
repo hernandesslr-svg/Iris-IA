@@ -27,6 +27,11 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val clapDetector = IrisClapDetector()
     private var clapEnabled = false
     private var cuesEnabled = false
+    private var speechRate = 0.94f
+    private var speechPitch = 1.04f
+    private var cueVolume = 35
+    private val audioManager by lazy { getSystemService(android.media.AudioManager::class.java) }
+    private var audioFocusRequest: android.media.AudioFocusRequest? = null
     private val fillers = IrisFillers()
     private val diagnostics = IrisVoiceDiagnostics()
     private val echoGuard = IrisEchoGuard()
@@ -81,8 +86,30 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             "com.iris.assistant.DISABLE_CLAPS" -> clapEnabled = false
             "com.iris.assistant.ENABLE_CUES" -> cuesEnabled = true
             "com.iris.assistant.DISABLE_CUES" -> cuesEnabled = false
+            "com.iris.assistant.VOICE_SLOW" -> setSpeechRate(0.78f)
+            "com.iris.assistant.VOICE_NORMAL" -> setSpeechRate(0.94f)
+            "com.iris.assistant.VOICE_FAST" -> setSpeechRate(1.16f)
         }
         return START_STICKY
+    }
+    private fun setSpeechRate(rate: Float) {
+        speechRate = rate.coerceIn(0.6f, 1.4f)
+        tts?.setSpeechRate(speechRate)
+    }
+    private fun requestAudioFocus() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val request = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANT)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                .build()
+            audioFocusRequest = request
+            audioManager.requestAudioFocus(request)
+        }
+    }
+    private fun releaseAudioFocus() {
+        if (Build.VERSION.SDK_INT >= 26) audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+        audioFocusRequest = null
     }
     private fun listen() {
         if (!running || hearing || (talking && !bargeInEnabled) || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
@@ -124,6 +151,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         responseSerial++
         tts?.stop()
         talking = false
+        releaseAudioFocus()
         listeningDuringTts = false
         audioGate.setGuard(false)
         activityState.change(IrisActivity.IDLE)
@@ -166,6 +194,26 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         }
         if (normalized.contains("sugira comandos") || normalized.contains("o que posso pedir")) {
             speak("Você pode dizer: " + IrisCommandSuggestions.forContext("general").joinToString(". "), "iris-suggestions")
+            return
+        }
+        if (normalized.contains("fale mais devagar") || normalized.contains("voz mais devagar")) {
+            setSpeechRate(0.78f); speak("Vou falar mais devagar.", "iris-rate"); return
+        }
+        if (normalized.contains("fale mais rapido") || normalized.contains("voz mais rapida")) {
+            setSpeechRate(1.16f); speak("Vou falar mais rápido.", "iris-rate"); return
+        }
+        if (normalized.contains("velocidade normal") || normalized.contains("voz normal")) {
+            setSpeechRate(0.94f); speak("Velocidade normal.", "iris-rate"); return
+        }
+        if (normalized.contains("ativar sons de confirmacao")) {
+            cuesEnabled = true; speak("Sons de confirmação ativados.", "iris-cues"); return
+        }
+        if (normalized.contains("desativar sons de confirmacao")) {
+            cuesEnabled = false; speak("Sons de confirmação desativados.", "iris-cues"); return
+        }
+        if (normalized.contains("diagnostico de voz")) {
+            val d = diagnostics.snapshot()
+            speak("Reconhecimentos nesta sessão: ${d.recognitionCount}. Último código de erro: ${d.lastErrorCode}.", "iris-diagnostics")
             return
         }
         if (normalized.contains("ativar palmas")) { clapEnabled = true; speak("Detecção de palmas ativada.", "iris-claps-on"); return }
@@ -228,6 +276,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     }
     private fun speak(text:String,id:String) {
         talking = true
+        requestAudioFocus()
         activityState.change(IrisActivity.SPEAKING)
         val safeText = IrisOutputSafety.spokenText(text)
         echoGuard.record(safeText)
@@ -238,7 +287,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             hearing = false
             micCoordinator.release("speech")
         } else if (!hearing) handler.postDelayed({ if (running && talking) listen() }, 400)
-        // No notification tone while TTS owns audio output.
+        // Optional cue before speech; disabled by default and never starts a second microphone.
+        if (cuesEnabled && !hearing) IrisAudioFeedback.confirm(this)
         tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
@@ -274,14 +324,14 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onInit(status:Int) {
         if (status != TextToSpeech.SUCCESS) return
         tts?.language=Locale("pt","BR")
-        tts?.setSpeechRate(0.94f)
-        tts?.setPitch(1.04f)
+        tts?.setSpeechRate(speechRate)
+        tts?.setPitch(speechPitch)
         val pt = tts?.voices?.filter { it.locale.language == "pt" && it.locale.country == "BR" }
         pt?.firstOrNull { !it.isNetworkConnectionRequired }?.let { tts?.voice = it }
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId:String?) {}
-            override fun onDone(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() } }
-            override fun onError(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); activityState.change(IrisActivity.ERROR); scheduleRetry() } }
+            override fun onDone(utteranceId:String?) { handler.post { talking=false; releaseAudioFocus(); audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() } }
+            override fun onError(utteranceId:String?) { handler.post { talking=false; releaseAudioFocus(); audioGate.setGuard(false); activityState.change(IrisActivity.ERROR); scheduleRetry() } }
         })
     }
     override fun onBind(intent:Intent?):IBinder? = null
@@ -294,6 +344,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.destroy()
         micCoordinator.release("speech")
         tts?.shutdown()
+        releaseAudioFocus()
         neural?.close()
         super.onDestroy()
     }
