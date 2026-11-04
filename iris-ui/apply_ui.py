@@ -3,7 +3,7 @@ p=Path("android-project/app/src/main/java/com/iris/assistant/MainActivity.kt")
 s=p.read_text()
 start=s.index("    override fun onCreate(savedInstanceState:")
 end=s.index("    private fun normalize(",start)
-new='''    private lateinit var subtitle: TextView
+new=r'''    private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
     private var recognizer: android.speech.SpeechRecognizer? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
