@@ -23,6 +23,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var statistical: IrisStatisticalModel? = null
     private var trigram: IrisTrigramGenerator? = null
     private val audioGate = IrisAudioGate()
+    private val fillers = IrisFillers()
+    private val diagnostics = IrisVoiceDiagnostics()
     private var microphoneActivity = false
     private var running = false
     private var hearing = false
@@ -77,7 +79,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         val candidate = text ?: lastPartial
         lastPartial = ""
         scheduleRetry()
-        if (candidate.isNotBlank()) handleSpeech(candidate)
+        if (candidate.isNotBlank()) { diagnostics.recordRecognition(); handleSpeech(candidate) }
     }
     // Adaptado da logica original iris-local.ts: remove repeticoes da transcricao.
     private fun hearOnce(raw:String):String {
@@ -104,7 +106,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             activeUntil = now + 50_000
             cleaned
         } else return
-        if (command.isBlank()) { speak("Estou ouvindo.","iris-ready"); return }
+        if (command.isBlank()) { speak(fillers.attention(),"iris-ready"); return }
         val remembered = memory?.teach(command) ?: memory?.recall(command)
         if (remembered != null) {
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",remembered))
@@ -155,7 +157,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         hearing = false
         tts?.speak(text,TextToSpeech.QUEUE_FLUSH,null,id)
     }
-    override fun onError(error:Int) { if (!talking) scheduleRetry() }
+    override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
     override fun onBeginningOfSpeech() {}
     override fun onRmsChanged(rmsdB:Float) {
