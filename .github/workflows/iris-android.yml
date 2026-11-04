@@ -114,6 +114,18 @@ jobs:
           assert old in s
           p.write_text(s.replace(old,new).replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ neural.close(); tts?.shutdown();'))
           PY
+      - name: Instalar MediaPipe e modelo de maos offline
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-project/app/build.gradle.kts")
+          s=p.read_text()
+          s += '\n dependencies { implementation("com.google.mediapipe:tasks-vision:0.10.14") }\n'
+          p.write_text(s)
+          PY
+          mkdir -p android-project/app/src/main/assets
+          curl --fail --location --retry 3 --output android-project/app/src/main/assets/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+          test $(stat -c%s android-project/app/src/main/assets/hand_landmarker.task) -gt 1000000
       - name: Aplicar interface holografica Iris
         run: |
           cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
@@ -132,6 +144,7 @@ jobs:
           cp iris-ui/IrisJarvisToolkit.kt android-project/app/src/main/java/com/iris/assistant/IrisJarvisToolkit.kt
           cp iris-ui/IrisAudioLevel.kt android-project/app/src/main/java/com/iris/assistant/IrisAudioLevel.kt
           cp iris-ui/IrisCameraGestures.kt android-project/app/src/main/java/com/iris/assistant/IrisCameraGestures.kt
+          cp iris-ui/IrisHandLandmarks.kt android-project/app/src/main/java/com/iris/assistant/IrisHandLandmarks.kt
           cp iris-ui/IrisSoundscape.kt android-project/app/src/main/java/com/iris/assistant/IrisSoundscape.kt
           mkdir -p android-project/app/src/main/assets/licenses
           cp iris-ui/JARVIS-LICENSE.txt android-project/app/src/main/assets/licenses/JARVIS-LICENSE.txt
@@ -191,7 +204,7 @@ jobs:
           from pathlib import Path
           base=Path("android-project/app/src/main")
           kotlin=base/"java/com/iris/assistant"
-          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
+          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisHandLandmarks.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
           missing=[name for name in required if not (kotlin/name).is_file()]
           assert not missing, f"Arquivos Android faltando: {missing}"
           weights=base/"assets/iris-lm-weights.json"
