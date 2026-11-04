@@ -129,6 +129,7 @@ jobs:
           cp iris-ui/IrisFillers.kt android-project/app/src/main/java/com/iris/assistant/IrisFillers.kt
           cp iris-ui/IrisCapabilities.kt android-project/app/src/main/java/com/iris/assistant/IrisCapabilities.kt
           cp iris-ui/IrisVoiceDiagnostics.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceDiagnostics.kt
+          cp iris-ui/IrisJarvisToolkit.kt android-project/app/src/main/java/com/iris/assistant/IrisJarvisToolkit.kt
           mkdir -p android-project/app/src/main/assets/licenses
           cp iris-ui/JARVIS-LICENSE.txt android-project/app/src/main/assets/licenses/JARVIS-LICENSE.txt
           python3 iris-ui/apply_ui.py
