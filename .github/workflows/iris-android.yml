@@ -117,7 +117,18 @@ jobs:
       - name: Aplicar interface holografica Iris
         run: |
           cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
+          cp iris-ui/IrisVoiceService.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceService.kt
           python3 iris-ui/apply_ui.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-project/app/src/main/AndroidManifest.xml")
+          s=p.read_text()
+          permissions = '<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>'
+          s=s.replace('<application',permissions+'\n    <application',1)
+          service = '<service android:name=".IrisVoiceService" android:exported="false" android:foregroundServiceType="microphone"/>'
+          s=s.replace('</application>',service+'\n    </application>',1)
+          p.write_text(s)
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
