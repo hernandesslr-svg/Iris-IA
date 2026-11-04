@@ -26,13 +26,25 @@ object IrisDeviceControl {
     private fun normalize(text:String):String =
         java.text.Normalizer.normalize(text.lowercase(java.util.Locale.ROOT),java.text.Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"),"")
+    private fun openInstalledByLabel(context:Context,target:String):String {
+        val pm=context.packageManager
+        val apps=pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0)
+        val app=apps.firstOrNull { normalize(it.loadLabel(pm).toString()) == target }
+            ?: apps.firstOrNull { normalize(it.loadLabel(pm).toString()).contains(target) }
+            ?: return "Não encontrei $target instalado."
+        val intent=pm.getLaunchIntentForPackage(app.activityInfo.packageName)
+            ?: return "Não consegui abrir $target."
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try { context.startActivity(intent); "Abrindo $target." }
+            catch (_:Exception) { "O Android bloqueou a abertura de $target." }
+    }
     fun tryExecute(context:Context, phrase:String):String? {
         val input = normalize(phrase).trim()
         val match = Regex("^(?:por favor[, ]*)?(?:abra|abre|abrir|inicie|iniciar|mostre|mostrar)\\s+(?:o |a |os |as )?(.+)$").find(input) ?: return null
         val target = match.groupValues[1].trim().removeSuffix(".")
         val key = apps.keys.sortedByDescending { it.length }.firstOrNull {
             target == it || target.startsWith("$it ") || target.startsWith("$it,")
-        } ?: return "Ainda não reconheço esse aplicativo: $target."
+        } ?: return openInstalledByLabel(context,target)
         val packageName = apps.getValue(key)
         val intent = when (packageName) {
             "gallery" -> Intent(Intent.ACTION_VIEW,MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply { type="image/*" }
