@@ -33,6 +33,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val audioManager by lazy { getSystemService(android.media.AudioManager::class.java) }
     private var audioFocusRequest: android.media.AudioFocusRequest? = null
     private val fillers = IrisFillers()
+    private val soundscape by lazy { IrisSoundscape(this) }
     private val diagnostics = IrisVoiceDiagnostics()
     private val echoGuard = IrisEchoGuard()
     private val activityState = IrisActivityState()
@@ -84,8 +85,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             "com.iris.assistant.DISABLE_BARGE_IN" -> bargeInEnabled = false
             "com.iris.assistant.ENABLE_CLAPS" -> clapEnabled = true
             "com.iris.assistant.DISABLE_CLAPS" -> clapEnabled = false
-            "com.iris.assistant.ENABLE_CUES" -> cuesEnabled = true
-            "com.iris.assistant.DISABLE_CUES" -> cuesEnabled = false
+            "com.iris.assistant.ENABLE_CUES" -> { cuesEnabled = true; soundscape.enable(true) }
+            "com.iris.assistant.DISABLE_CUES" -> { cuesEnabled = false; soundscape.enable(false) }
             "com.iris.assistant.VOICE_SLOW" -> setSpeechRate(0.78f)
             "com.iris.assistant.VOICE_NORMAL" -> setSpeechRate(0.94f)
             "com.iris.assistant.VOICE_FAST" -> setSpeechRate(1.16f)
@@ -206,10 +207,10 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             setSpeechRate(0.94f); speak("Velocidade normal.", "iris-rate"); return
         }
         if (normalized.contains("ativar sons de confirmacao")) {
-            cuesEnabled = true; speak("Sons de confirmação ativados.", "iris-cues"); return
+            cuesEnabled = true; soundscape.enable(true); speak("Sons de confirmação ativados.", "iris-cues"); return
         }
         if (normalized.contains("desativar sons de confirmacao")) {
-            cuesEnabled = false; speak("Sons de confirmação desativados.", "iris-cues"); return
+            cuesEnabled = false; soundscape.enable(false); speak("Sons de confirmação desativados.", "iris-cues"); return
         }
         if (normalized.contains("diagnostico de voz")) {
             val d = diagnostics.snapshot()
@@ -287,8 +288,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             hearing = false
             micCoordinator.release("speech")
         } else if (!hearing) handler.postDelayed({ if (running && talking) listen() }, 400)
-        // Optional cue before speech; disabled by default and never starts a second microphone.
-        if (cuesEnabled && !hearing) IrisAudioFeedback.confirm(this)
+        // Optional nonverbal feedback, suppressed during microphone capture.
+        soundscape.cue("ready", listening = hearing, speaking = false)
         tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
@@ -344,6 +345,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.destroy()
         micCoordinator.release("speech")
         tts?.shutdown()
+        soundscape.close()
         releaseAudioFocus()
         neural?.close()
         super.onDestroy()
