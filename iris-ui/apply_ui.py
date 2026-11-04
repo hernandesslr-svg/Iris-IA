@@ -5,6 +5,21 @@ start=s.index("    override fun onCreate(savedInstanceState:")
 end=s.index("    private fun normalize(",start)
 new=r'''    private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
+    private var cameraGestures: IrisCameraGestures? = null
+    private fun toggleCameraGestures() {
+        if (cameraGestures != null) { cameraGestures?.stop(); cameraGestures = null; subtitle.text = "Gestos desativados."; return }
+        if (checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 78); return
+        }
+        val detector = IrisCameraGestures(this) { gesture ->
+            if (gesture == "WAVE") {
+                subtitle.text = "Aceno detectado. Iris está ouvindo."
+                startVoiceService()
+            }
+        }
+        if (detector.start()) { cameraGestures = detector; subtitle.text = "Câmera ativa: acene para chamar a Iris." }
+        else subtitle.text = "Não foi possível iniciar a câmera frontal."
+    }
     private val voiceReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
             val answer = intent?.getStringExtra("answer") ?: return
@@ -33,6 +48,8 @@ new=r'''    private lateinit var subtitle: TextView
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
         if (requestCode == 77 && grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)
             startVoiceService()
+        if (requestCode == 78 && grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)
+            toggleCameraGestures()
     }
     private fun speakAnswer(message: String) {
         Thread {
@@ -72,11 +89,11 @@ new=r'''    private lateinit var subtitle: TextView
             gravity = Gravity.CENTER
             contentDescription = "Configurações"
             setOnClickListener {
-                val options = arrayOf("Ouvir minha voz", "Digitar mensagem")
+                val options = arrayOf("Ouvir minha voz", "Digitar mensagem", "Ativar/desativar gestos por câmera")
                 android.app.AlertDialog.Builder(this@MainActivity)
                     .setTitle("Iris")
                     .setItems(options) { _, which ->
-                        if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else {
+                        if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else if (which == 2) { toggleCameraGestures() } else {
                             val field = EditText(this@MainActivity)
                             android.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Mensagem para Iris")
@@ -121,6 +138,7 @@ new=r'''    private lateinit var subtitle: TextView
     }
 '''
 s=s[:start]+new+s[end:]
-s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ unregisterReceiver(voiceReceiver); neural.close(); tts?.shutdown();')
+s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ cameraGestures?.stop(); unregisterReceiver(voiceReceiver); neural.close(); tts?.shutdown();')
+s=s.replace("    override fun onStop(){", "    override fun onStop(){ cameraGestures?.stop(); cameraGestures = null;") if "    override fun onStop(){" in s else s
 p.write_text(s)
 print("Interface Iris instalada",p.stat().st_size)
