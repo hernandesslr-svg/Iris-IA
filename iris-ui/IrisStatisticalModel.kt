@@ -13,6 +13,7 @@ class IrisStatisticalModel(context:Context) {
     } catch (_:Exception) { null }
     data class Prediction(val label:String,val gap:Double,val known:Int,val confident:Boolean)
     val available:Boolean get()=root!=null
+    val trainingStats:JSONObject? get()=root?.optJSONObject("stats")
     private fun features(input:String):Set<String> {
         val normalized=Normalizer.normalize(input.lowercase(Locale.ROOT),Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"),"")
