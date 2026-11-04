@@ -112,7 +112,13 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             return
         }
         Thread {
-            val answer = try { neural?.generateOrNull(command) } catch (_: Exception) { null }
+            val intent = IrisIntent.classify(command)
+            val mood = IrisIntent.mood(command)
+            val prompt = when(intent) {
+                IrisIntent.Kind.SEARCH -> "Pergunta factual. Se não souber ou exigir dados atuais, diga que não pode confirmar. Pergunta: $command"
+                IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Mensagem: $command"
+            }
+            val answer = try { neural?.generateOrNull(prompt) } catch (_: Exception) { null }
             val spoken = answer ?: "Não consegui processar sua pergunta agora."
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",spoken))
             handler.post { speak(spoken,"iris-answer") }
