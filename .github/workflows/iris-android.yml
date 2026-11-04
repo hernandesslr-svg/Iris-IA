@@ -142,7 +142,7 @@ jobs:
           from pathlib import Path
           import json
           if not Path("iris-IA.zip").exists():
-              print("ZIP original ausente; mantendo classificador alternativo.")
+              print("::warning title=Modelo Iris incompleto::O ZIP original nao esta no repositorio; o APK usara o classificador alternativo.")
               raise SystemExit(0)
           with ZipFile("iris-IA.zip") as z:
               source=z.read("src/lib/iris-lm-weights.ts").decode("utf-8")
@@ -160,6 +160,25 @@ jobs:
           target.write_text(json.dumps(weights,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
           print("Pesos originais Iris incluídos:",target.stat().st_size,"bytes")
           print("Assuntos:",len(weights["topic"]["classes"]),"Emoções:",len(weights["mood"]["classes"]))
+          PY
+      - name: Auditar recursos da Iris no APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base=Path("android-project/app/src/main")
+          kotlin=base/"java/com/iris/assistant"
+          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt"]
+          missing=[name for name in required if not (kotlin/name).is_file()]
+          assert not missing, f"Arquivos Android faltando: {missing}"
+          weights=base/"assets/iris-lm-weights.json"
+          if weights.is_file():
+              import json
+              data=json.loads(weights.read_text(encoding="utf-8"))
+              assert all(data.get(k) for k in ("topic","mood","gen")), "Modelo Iris incompleto"
+              print("Modelo original Iris: pesos presentes e JSON validado")
+          else:
+              print("::warning title=Modelo original inativo::Pesos treinados nao incluidos no APK; inferencia estatistica usa fallback.")
+          print("Arquivos Kotlin obrigatorios presentes:",len(required))
           PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
