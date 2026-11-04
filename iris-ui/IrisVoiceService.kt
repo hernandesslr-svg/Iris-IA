@@ -23,6 +23,10 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var statistical: IrisStatisticalModel? = null
     private var trigram: IrisTrigramGenerator? = null
     private val audioGate = IrisAudioGate()
+    private val audioLevel = IrisAudioLevel()
+    private val clapDetector = IrisClapDetector()
+    private var clapEnabled = false
+    private var cuesEnabled = false
     private val fillers = IrisFillers()
     private val diagnostics = IrisVoiceDiagnostics()
     private val echoGuard = IrisEchoGuard()
@@ -59,7 +63,23 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         running = true
         handler.post { listen() }
     }
-    override fun onStartCommand(intent: Intent?, flags:Int, startId:Int):Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags:Int, startId:Int):Int {
+        when (intent?.action) {
+            "com.iris.assistant.STOP_SPEECH" -> {
+                responseSerial++
+                tts?.stop()
+                talking = false
+                audioGate.setGuard(false)
+                activityState.change(IrisActivity.IDLE)
+                scheduleRetry()
+            }
+            "com.iris.assistant.ENABLE_CLAPS" -> clapEnabled = true
+            "com.iris.assistant.DISABLE_CLAPS" -> clapEnabled = false
+            "com.iris.assistant.ENABLE_CUES" -> cuesEnabled = true
+            "com.iris.assistant.DISABLE_CUES" -> cuesEnabled = false
+        }
+        return START_STICKY
+    }
     private fun listen() {
         if (!running || hearing || talking || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
         if (!micCoordinator.acquire("speech")) return
@@ -123,6 +143,12 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             scheduleRetry()
             return
         }
+        if (normalized.contains("sugira comandos") || normalized.contains("o que posso pedir")) {
+            speak("Você pode dizer: " + IrisCommandSuggestions.forContext("general").joinToString(". "), "iris-suggestions")
+            return
+        }
+        if (normalized.contains("ativar palmas")) { clapEnabled = true; speak("Detecção de palmas ativada.", "iris-claps-on"); return }
+        if (normalized.contains("desativar palmas")) { clapEnabled = false; speak("Detecção de palmas desativada.", "iris-claps-off"); return }
         if (normalized.contains("quais sao suas capacidades")) {
             val c = IrisCapabilities.probe(this)
             val reply = "Posso conversar, guardar informações e executar comandos compatíveis. " +
@@ -189,6 +215,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.cancel()
         hearing = false
         micCoordinator.release("speech")
+        if (cuesEnabled && IrisSoundPolicy.canPlayCue(false, false)) IrisAudioFeedback.confirm(this)
         tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
@@ -200,7 +227,20 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         val level = Math.pow(10.0, (rmsdB.toDouble() - 20.0) / 20.0).coerceIn(0.0, 1.0)
         microphoneActivity = audioGate.update(level, SystemClock.elapsedRealtime())
     }
-    override fun onBufferReceived(buffer:ByteArray?) {}
+    override fun onBufferReceived(buffer:ByteArray?) {
+        if (buffer == null || buffer.size < 4 || talking) return
+        // Android RecognitionListener delivers big-endian signed PCM16 when supported.
+        val samples = ShortArray(buffer.size / 2) { i ->
+            val hi = buffer[i * 2].toInt()
+            val lo = buffer[i * 2 + 1].toInt() and 0xff
+            ((hi shl 8) or lo).toShort()
+        }
+        val level = audioLevel.update(samples)
+        microphoneActivity = audioGate.update(level, SystemClock.elapsedRealtime())
+        if (clapEnabled && clapDetector.sample(level, SystemClock.elapsedRealtime())) {
+            sendBroadcast(Intent("com.iris.assistant.CLAP_DETECTED").setPackage(packageName))
+        }
+    }
     override fun onEndOfSpeech() {}
     override fun onPartialResults(partialResults:Bundle?) {
         lastPartial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
@@ -216,7 +256,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId:String?) {}
             override fun onDone(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() } }
-            override fun onError(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
+            override fun onError(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); activityState.change(IrisActivity.ERROR); scheduleRetry() } }
         })
     }
     override fun onBind(intent:Intent?):IBinder? = null
