@@ -27,8 +27,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val clapDetector = IrisClapDetector()
     private var clapEnabled = false
     private var cuesEnabled = false
-    private var speechRate = 0.94f
-    private var speechPitch = 1.04f
+    private var speechRate = IrisFixedVoice.speechRate
+    private var speechPitch = IrisFixedVoice.speechPitch
     private var cueVolume = 35
     private val audioManager by lazy { getSystemService(android.media.AudioManager::class.java) }
     private var audioFocusRequest: android.media.AudioFocusRequest? = null
@@ -324,11 +324,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onEvent(eventType:Int,params:Bundle?) {}
     override fun onInit(status:Int) {
         if (status != TextToSpeech.SUCCESS) return
-        tts?.language=Locale("pt","BR")
-        tts?.setSpeechRate(speechRate)
-        tts?.setPitch(speechPitch)
-        val pt = tts?.voices?.filter { it.locale.language == "pt" && it.locale.country == "BR" }
-        pt?.firstOrNull { !it.isNetworkConnectionRequired }?.let { tts?.voice = it }
+        tts?.let { IrisFixedVoice.configureAndroidFallback(it) }
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId:String?) {}
             override fun onDone(utteranceId:String?) { handler.post { talking=false; releaseAudioFocus(); audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() } }
