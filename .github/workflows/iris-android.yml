@@ -141,9 +141,14 @@ jobs:
           from zipfile import ZipFile
           from pathlib import Path
           import json
-          if not Path("iris-IA.zip").exists():
-              print("::warning title=Modelo Iris incompleto::O ZIP original nao esta no repositorio; o APK usara o classificador alternativo.")
+          installed=Path("android-project/app/src/main/assets/iris-lm-weights.json")
+          if installed.is_file():
+              weights=json.loads(installed.read_text(encoding="utf-8"))
+              assert all(weights.get(k) for k in ("topic","mood","gen")), "Pesos preinstalados invalidos"
+              print("Pesos ORIGINAIS ja presentes no projeto Android:",installed.stat().st_size,"bytes")
               raise SystemExit(0)
+          if not Path("iris-IA.zip").exists():
+              raise RuntimeError("Pesos Iris ausentes do projeto Android e ZIP original indisponivel")
           with ZipFile("iris-IA.zip") as z:
               source=z.read("src/lib/iris-lm-weights.ts").decode("utf-8")
           marker="export const LM_WEIGHTS: LMWeights = "
