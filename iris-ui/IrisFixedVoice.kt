@@ -7,11 +7,13 @@ import java.util.Locale
 /**
  * Single fixed Iris voice policy. No voice picker.
  *
- * Kokoro cannot be selected until its offline inference engine, Portuguese
- * phonemizer and voice/model assets are installed and validated on device.
- * The Android pt-BR engine remains the working fallback in the meantime.
+ * Online target: ElevenLabs Fernanda (fixed voice ID).
+ * Offline fallback: Android pt-BR until a local neural voice is integrated.
+ * Never bundle API secrets in the APK.
  */
 object IrisFixedVoice {
+    const val onlineProvider = "elevenlabs"
+    const val onlineVoiceId = "KHmfNHtEjHhLK9eER20w"
     val language: Locale = Locale("pt", "BR")
     const val speechRate = 0.94f
     const val speechPitch = 1.04f
