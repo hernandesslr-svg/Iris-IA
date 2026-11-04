@@ -143,6 +143,11 @@ jobs:
           from pathlib import Path
           import json
           installed=Path("android-project/app/src/main/assets/iris-lm-weights.json")
+          committed=Path("iris-ui/assets/iris-lm-weights.json")
+          if committed.is_file():
+              installed.parent.mkdir(parents=True,exist_ok=True)
+              installed.write_bytes(committed.read_bytes())
+              print("Pesos Iris copiados do repositorio:",installed.stat().st_size,"bytes")
           if installed.is_file():
               weights=json.loads(installed.read_text(encoding="utf-8"))
               assert all(weights.get(k) for k in ("topic","mood","gen")), "Pesos preinstalados invalidos"
@@ -184,7 +189,7 @@ jobs:
               assert all(data.get(k) for k in ("topic","mood","gen")), "Modelo Iris incompleto"
               print("Modelo original Iris: pesos presentes e JSON validado")
           else:
-              print("::warning title=Modelo original inativo::Pesos treinados nao incluidos no APK; inferencia estatistica usa fallback.")
+              raise RuntimeError("Pesos estatisticos originais nao incluidos no APK")
           print("Arquivos Kotlin obrigatorios presentes:",len(required))
           PY
       - name: Compilar APK debug da Iris
