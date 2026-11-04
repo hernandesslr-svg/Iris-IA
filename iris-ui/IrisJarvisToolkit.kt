@@ -3,6 +3,7 @@ package com.iris.assistant
 import android.content.Context
 import android.os.SystemClock
 import java.util.Locale
+import java.text.Normalizer
 
 /** Android-native, UI-independent adaptations of reusable Jarvis utilities. */
 object IrisTextSanitizer {
@@ -15,7 +16,8 @@ object IrisTextSanitizer {
 class IrisEchoGuard {
     private var lastSpoken = ""
     private var spokenAt = 0L
-    private fun normalize(text: String): String = text.lowercase(Locale.ROOT)
+    private fun normalize(text: String): String = Normalizer.normalize(text.lowercase(Locale.ROOT), Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "")
         .replace(Regex("[^a-z0-9 ]"), " ").replace(Regex(" +"), " ").trim()
     fun record(text: String) {
         lastSpoken = normalize(text)
