@@ -6,6 +6,19 @@ end=s.index("    private fun normalize(",start)
 new=r'''    private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
     private var cameraGestures: IrisCameraGestures? = null
+    private fun previewOriginalVoice() {
+        val sample = "Olá! Eu sou a Iris, sua assistente pessoal. Estou pronta para conversar com você."
+        val voice = tts
+        if (!speechReady || voice == null) {
+            subtitle.text = "Aguarde a inicialização da voz do Android e tente novamente."
+            return
+        }
+        voice.language = java.util.Locale("pt", "BR")
+        voice.setSpeechRate(1.0f)
+        voice.setPitch(1.0f)
+        subtitle.text = "Teste da voz original do Android em português brasileiro."
+        voice.speak(sample, TextToSpeech.QUEUE_FLUSH, null, "iris-original-preview")
+    }
     private fun toggleCameraGestures() {
         if (cameraGestures != null) { cameraGestures?.stop(); cameraGestures = null; subtitle.text = "Gestos desativados."; return }
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -93,11 +106,11 @@ new=r'''    private lateinit var subtitle: TextView
             gravity = Gravity.CENTER
             contentDescription = "Configurações"
             setOnClickListener {
-                val options = arrayOf("Ouvir minha voz", "Digitar mensagem", "Ativar/desativar gestos por câmera")
+                val options = arrayOf("Ouvir minha voz", "Digitar mensagem", "Ativar/desativar gestos por câmera", "Testar voz original da Iris")
                 android.app.AlertDialog.Builder(this@MainActivity)
                     .setTitle("Iris")
                     .setItems(options) { _, which ->
-                        if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else if (which == 2) { toggleCameraGestures() } else {
+                        if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else if (which == 2) { toggleCameraGestures() } else if (which == 3) { previewOriginalVoice() } else {
                             val field = EditText(this@MainActivity)
                             android.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Mensagem para Iris")
