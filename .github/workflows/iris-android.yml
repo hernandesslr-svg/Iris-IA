@@ -81,7 +81,7 @@ jobs:
       - name: Integrar llama.cpp JNI e conversa offline
         run: |
           set -e
-          git clone --depth 1 --branch b6200 https://github.com/ggml-org/llama.cpp.git android-project/app/src/main/cpp/llama.cpp
+          git clone --depth 1 --branch master https://github.com/ggml-org/llama.cpp.git android-project/app/src/main/cpp/llama.cpp
           cp iris-native/iris_native.cpp android-project/app/src/main/cpp/
           cp iris-native/CMakeLists.txt android-project/app/src/main/cpp/
           cp iris-native/IrisNeuralCore.kt android-project/app/src/main/java/com/iris/assistant/IrisNeuralCore.kt
