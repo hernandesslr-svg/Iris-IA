@@ -119,6 +119,7 @@ jobs:
           cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
           cp iris-ui/IrisVoiceService.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceService.kt
           cp iris-ui/IrisDeviceControl.kt android-project/app/src/main/java/com/iris/assistant/IrisDeviceControl.kt
+          cp iris-ui/IrisMemory.kt android-project/app/src/main/java/com/iris/assistant/IrisMemory.kt
           python3 iris-ui/apply_ui.py
           python3 - <<'PY'
           from pathlib import Path
