@@ -71,17 +71,30 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         scheduleRetry()
         if (candidate.isNotBlank()) handleSpeech(candidate)
     }
+    // Adaptado da logica original iris-local.ts: remove repeticoes da transcricao.
+    private fun hearOnce(raw:String):String {
+        val words=raw.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (words.isEmpty()) return ""
+        for (size in 1..(words.size/2)) {
+            if (words.size % size != 0) continue
+            val chunk=words.take(size)
+            if (words.chunked(size).all { part -> part.map { it.lowercase(Locale.ROOT) } == chunk.map { it.lowercase(Locale.ROOT) } })
+                return chunk.joinToString(" ")
+        }
+        return words.filterIndexed { index,word -> index==0 || !word.equals(words[index-1],ignoreCase=true) }.joinToString(" ")
+    }
     private fun handleSpeech(text:String) {
-        val normalized = Normalizer.normalize(text.lowercase(Locale.ROOT),Normalizer.Form.NFD)
+        val cleaned = hearOnce(text)
+        val normalized = Normalizer.normalize(cleaned.lowercase(Locale.ROOT),Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"),"")
         val wake = Regex("\\biris\\b").find(normalized)
         val now = SystemClock.elapsedRealtime()
         val command = if (wake != null) {
             activeUntil = now + 50_000
-            text.substring(wake.range.last+1).trim(' ','.',',','!','?')
+            cleaned.substring(wake.range.last+1).trim(' ','.',',','!','?')
         } else if (now < activeUntil) {
             activeUntil = now + 50_000
-            text
+            cleaned
         } else return
         if (command.isBlank()) { speak("Estou ouvindo.","iris-ready"); return }
         val deviceResult = IrisDeviceControl.tryExecute(this,command)
