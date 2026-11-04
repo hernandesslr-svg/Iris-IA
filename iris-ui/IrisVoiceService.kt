@@ -20,6 +20,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var tts: TextToSpeech? = null
     private var neural: IrisNeuralCore? = null
     private var memory: IrisMemory? = null
+    private var statistical: IrisStatisticalModel? = null
     private var running = false
     private var hearing = false
     private var talking = false
@@ -44,6 +45,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         tts = TextToSpeech(this,this)
         neural = IrisNeuralCore(this)
         memory = IrisMemory(this)
+        statistical = IrisStatisticalModel(this)
         running = true
         handler.post { listen() }
     }
@@ -113,10 +115,11 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         }
         Thread {
             val intent = IrisIntent.classify(command)
-            val mood = IrisIntent.mood(command)
+            val mood = statistical?.mood(command)?.takeIf { it.confident }?.label ?: IrisIntent.mood(command)
+            val topic = statistical?.topic(command)?.takeIf { it.confident }?.label ?: "geral"
             val prompt = when(intent) {
                 IrisIntent.Kind.SEARCH -> "Pergunta factual. Se não souber ou exigir dados atuais, diga que não pode confirmar. Pergunta: $command"
-                IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Mensagem: $command"
+                IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Assunto: $topic. Mensagem: $command"
             }
             val answer = try { neural?.generateOrNull(prompt) } catch (_: Exception) { null }
             val spoken = answer ?: "Não consegui processar sua pergunta agora."
