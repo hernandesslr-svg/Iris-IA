@@ -7,6 +7,7 @@ on:
     paths:
       - 'Iris-Android-preparado-para-GitHub.zip'
       - 'iris-native/**'
+      - 'iris-ui/**'
       - '.github/workflows/iris-android.yml'
 
 permissions:
@@ -113,6 +114,10 @@ jobs:
           assert old in s
           p.write_text(s.replace(old,new).replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ neural.close(); tts?.shutdown();'))
           PY
+      - name: Aplicar interface holografica Iris
+        run: |
+          cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
+          python3 iris-ui/apply_ui.py
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
