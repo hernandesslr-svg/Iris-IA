@@ -51,3 +51,26 @@ object IrisAudioFeedback {
         finally { android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tone.release() }, 180) }
     }
 }
+
+/** Shared ownership flag for audio operations; no extra microphone is opened. */
+class IrisMicrophoneCoordinator {
+    @Volatile private var owner: String? = null
+    @Synchronized fun acquire(requester: String): Boolean {
+        if (owner != null && owner != requester) return false
+        owner = requester
+        return true
+    }
+    @Synchronized fun release(requester: String) { if (owner == requester) owner = null }
+    fun currentOwner(): String? = owner
+}
+
+/** Treats generated text as plain speech, not executable instructions or markup. */
+object IrisOutputSafety {
+    fun spokenText(raw: String, limit: Int = 3000): String =
+        IrisTextSanitizer.cleanSpeech(raw).take(limit.coerceIn(1, 10000))
+}
+
+/** Audio cue policy: avoid cues while microphone or voice synthesis is active. */
+object IrisSoundPolicy {
+    fun canPlayCue(listening: Boolean, speaking: Boolean): Boolean = !listening && !speaking
+}
