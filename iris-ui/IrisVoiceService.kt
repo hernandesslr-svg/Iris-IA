@@ -21,6 +21,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var neural: IrisNeuralCore? = null
     private var memory: IrisMemory? = null
     private var statistical: IrisStatisticalModel? = null
+    private var trigram: IrisTrigramGenerator? = null
     private var running = false
     private var hearing = false
     private var talking = false
@@ -46,6 +47,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         neural = IrisNeuralCore(this)
         memory = IrisMemory(this)
         statistical = IrisStatisticalModel(this)
+        trigram = IrisTrigramGenerator(this)
         running = true
         handler.post { listen() }
     }
@@ -122,7 +124,23 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
                 IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Assunto: $topic. Mensagem: $command"
             }
             val answer = try { neural?.generateOrNull(prompt) } catch (_: Exception) { null }
-            val spoken = answer ?: "Não consegui processar sua pergunta agora."
+            // Qwen continua principal; trigramas atuam como alternativa local para conversa.
+            val local = if (answer.isNullOrBlank() && intent == IrisIntent.Kind.CHAT) {
+                val moodKey = when (mood.lowercase(Locale.ROOT)) {
+                    "neg", "negativo", "triste", "raiva" -> "neg"
+                    "pos", "positivo", "feliz", "alegre" -> "pos"
+                    else -> "neu"
+                }
+                val keys = listOf(
+                    "Q:$topic:deep" to 3,
+                    "Q:*:deep:$moodKey" to 2,
+                    "Q:*:ask:$moodKey" to 1
+                )
+                try { trigram?.generate(keys, command.hashCode()) } catch (_: Exception) { null }
+            } else null
+            val spoken = answer?.takeIf { it.isNotBlank() }
+                ?: local?.takeIf { it.length >= 8 }
+                ?: "Não consegui processar sua pergunta agora."
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",spoken))
             handler.post { speak(spoken,"iris-answer") }
         }.start()
