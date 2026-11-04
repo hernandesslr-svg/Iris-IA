@@ -79,6 +79,12 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             text
         } else return
         if (command.isBlank()) { tts?.speak("Estou ouvindo.",TextToSpeech.QUEUE_FLUSH,null,"iris-ready"); return }
+        val deviceResult = IrisDeviceControl.tryExecute(this,command)
+        if (deviceResult != null) {
+            sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",deviceResult))
+            tts?.speak(deviceResult,TextToSpeech.QUEUE_FLUSH,null,"iris-device")
+            return
+        }
         Thread {
             val answer = try { neural?.generateOrNull(command) } catch (_: Exception) { null }
             val spoken = answer ?: "Não consegui processar sua pergunta agora."
