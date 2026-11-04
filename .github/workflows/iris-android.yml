@@ -130,6 +130,7 @@ jobs:
           cp iris-ui/IrisCapabilities.kt android-project/app/src/main/java/com/iris/assistant/IrisCapabilities.kt
           cp iris-ui/IrisVoiceDiagnostics.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceDiagnostics.kt
           cp iris-ui/IrisJarvisToolkit.kt android-project/app/src/main/java/com/iris/assistant/IrisJarvisToolkit.kt
+          cp iris-ui/IrisAudioLevel.kt android-project/app/src/main/java/com/iris/assistant/IrisAudioLevel.kt
           mkdir -p android-project/app/src/main/assets/licenses
           cp iris-ui/JARVIS-LICENSE.txt android-project/app/src/main/assets/licenses/JARVIS-LICENSE.txt
           python3 iris-ui/apply_ui.py
@@ -188,7 +189,7 @@ jobs:
           from pathlib import Path
           base=Path("android-project/app/src/main")
           kotlin=base/"java/com/iris/assistant"
-          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt"]
+          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
           missing=[name for name in required if not (kotlin/name).is_file()]
           assert not missing, f"Arquivos Android faltando: {missing}"
           weights=base/"assets/iris-lm-weights.json"
