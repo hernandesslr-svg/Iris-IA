@@ -19,6 +19,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
     private var neural: IrisNeuralCore? = null
+    private var memory: IrisMemory? = null
     private var running = false
     private var hearing = false
     private var talking = false
@@ -42,6 +43,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         else startForeground(1001,notification)
         tts = TextToSpeech(this,this)
         neural = IrisNeuralCore(this)
+        memory = IrisMemory(this)
         running = true
         handler.post { listen() }
     }
@@ -97,6 +99,12 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             cleaned
         } else return
         if (command.isBlank()) { speak("Estou ouvindo.","iris-ready"); return }
+        val remembered = memory?.teach(command) ?: memory?.recall(command)
+        if (remembered != null) {
+            sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",remembered))
+            speak(remembered,"iris-memory")
+            return
+        }
         val deviceResult = IrisDeviceControl.tryExecute(this,command)
         if (deviceResult != null) {
             sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",deviceResult))
