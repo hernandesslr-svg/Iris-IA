@@ -50,7 +50,7 @@ Java_com_iris_assistant_IrisNeuralCore_nativeGenerate(JNIEnv *env, jobject, jstr
     std::vector<llama_token> tokens(n);
     if (llama_tokenize(vocab_, text.c_str(), (int)text.size(), tokens.data(), n, true, true) < 0)
         return env->NewStringUTF("");
-    llama_kv_cache_clear(ctx_);
+    llama_memory_clear(llama_get_memory(ctx_), true);
     llama_batch batch = llama_batch_init(512, 0, 1);
     int offset = 0;
     while (offset < n) {
