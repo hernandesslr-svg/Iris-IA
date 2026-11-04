@@ -77,6 +77,51 @@ jobs:
           existing = "\n".join(line for line in existing.splitlines() if not line.startswith("org.gradle.jvmargs="))
           props.write_text(existing + "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\n")
           PY
+      - name: Preparar carregamento offline e evitar bloqueio da interface
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path("android-project/app/src/main/java/com/iris/assistant")
+          core = base / "IrisNeuralCore.kt"
+          s = core.read_text()
+          s = s.replace('import java.io.File', 'import java.io.File\nimport java.io.FileOutputStream')
+          s = s.replace('    fun status(): Status {', '''    fun ensureModelInstalled(): File {
+              val target = modelFile
+              if (target.isFile && target.length() >= MIN_MODEL_BYTES) return target
+              target.parentFile?.mkdirs()
+              val temporary = File(target.parentFile, target.name + ".partial")
+              try {
+                  context.assets.open(MODEL_FILENAME).use { source ->
+                      FileOutputStream(temporary).use { output -> source.copyTo(output, 1024 * 1024) }
+                  }
+                  check(temporary.length() >= MIN_MODEL_BYTES) { "Modelo GGUF incompleto" }
+                  if (target.exists()) target.delete()
+                  check(temporary.renameTo(target)) { "Falha ao instalar modelo offline" }
+                  return target
+              } finally {
+                  if (temporary.exists()) temporary.delete()
+              }
+          }
+          fun status(): Status {''')
+          core.write_text(s)
+          activity = base / "MainActivity.kt"
+          s = activity.read_text()
+          old = 'val answer=neural.generateOrNull(msg) ?: respond(msg); addMessage("Iris",answer); if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris") ;scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }'
+          new = '''Thread {
+                      val answer = try {
+                          neural.ensureModelInstalled()
+                          neural.generateOrNull(msg) ?: respond(msg)
+                      } catch (_: Exception) { respond(msg) }
+                      runOnUiThread {
+                          if (isFinishing || isDestroyed) return@runOnUiThread
+                          addMessage("Iris", answer)
+                          if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris")
+                          scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
+                      }
+                  }.start()'''
+          assert old in s, "Trecho da conversa mudou; nao aplicar patch incorreto"
+          activity.write_text(s.replace(old,new))
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
