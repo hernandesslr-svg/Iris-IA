@@ -65,13 +65,42 @@ jobs:
           shutil.copyfile(source, dest)
           print("Modelo GGUF incluído nos assets:", dest.stat().st_size, "bytes")
           PY
+      - name: Baixar modelo Kokoro pt-BR offline e voz feminina fixa
+        run: |
+          python3 -m pip install --quiet huggingface_hub
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          from pathlib import Path, PurePosixPath
+          from zipfile import ZipFile
+          source = hf_hub_download(repo_id="cristianoaredes/kokoro-pt-br", filename="letrinhas-kokoro-pt.zip")
+          dest = Path("android-project/app/src/main/assets/kokoro")
+          dest.mkdir(parents=True, exist_ok=True)
+          with ZipFile(source) as z:
+              for item in z.infolist():
+                  if item.is_dir(): continue
+                  parts = PurePosixPath(item.filename).parts
+                  if ".." in parts or not parts: raise RuntimeError("Arquivo Kokoro invalido")
+                  keep = next((i for i,p in enumerate(parts) if p in ("model.onnx","voices.bin","tokens.txt","espeak-ng-data")),None)
+                  if keep is None: continue
+                  rel = Path(*parts[keep:])
+                  target = dest / rel
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  with z.open(item) as src, target.open("wb") as out:
+                      import shutil
+                      shutil.copyfileobj(src,out)
+          for filename in ("model.onnx","voices.bin","tokens.txt"):
+              assert (dest/filename).is_file(), f"Kokoro incompleto: {filename}"
+          assert (dest/"model.onnx").stat().st_size > 100_000_000
+          assert (dest/"espeak-ng-data").is_dir()
+          print("Kokoro pt-BR incluido. Voz fixa planejada: pf_dora (speaker 42).")
+          PY
       - name: Evitar compactacao GGUF e estouro de memoria
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path("android-project/app/build.gradle.kts")
           s = p.read_text()
-          if 'noCompress += "gguf"' not in s:
+          if 'noCompress += listOf("gguf", "onnx", "bin")' not in s:
               s += '\nandroid { androidResources { noCompress += "gguf" } }\n'
           p.write_text(s)
           props = Path("android-project/gradle.properties")
