@@ -135,6 +135,29 @@ jobs:
           s=s.replace('<application', '<queries><intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent></queries>\n    <application',1)
           p.write_text(s)
           PY
+      - name: Restaurar pesos treinados originais da Iris
+        run: |
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from pathlib import Path
+          import json
+          with ZipFile("iris-IA.zip") as z:
+              source=z.read("src/lib/iris-lm-weights.ts").decode("utf-8")
+          marker="export const LM_WEIGHTS: LMWeights = "
+          assert marker in source, "Pesos do modelo Iris não encontrados"
+          raw=source.split(marker,1)[1].strip()
+          assert raw.endswith(";"), "Formato inesperado dos pesos Iris"
+          weights=json.loads(raw[:-1])
+          assert "topic" in weights and "mood" in weights and "gen" in weights
+          assert len(weights["topic"]["classes"])>=30
+          assert weights["topic"]["feats"] and weights["mood"]["feats"]
+          assets=Path("android-project/app/src/main/assets")
+          assets.mkdir(parents=True,exist_ok=True)
+          target=assets/"iris-lm-weights.json"
+          target.write_text(json.dumps(weights,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+          print("Pesos originais Iris incluídos:",target.stat().st_size,"bytes")
+          print("Assuntos:",len(weights["topic"]["classes"]),"Emoções:",len(weights["mood"]["classes"]))
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
