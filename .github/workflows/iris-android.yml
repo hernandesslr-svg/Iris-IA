@@ -14,7 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
@@ -51,13 +51,30 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Baixar Qwen3 1.7B Q4_K_M diretamente do Hugging Face
+        env:
+          HF_REPO: unsloth/Qwen3-1.7B-GGUF
+          HF_FILE: Qwen3-1.7B-Q4_K_M.gguf
+        run: |
+          python3 -m pip install --quiet huggingface_hub
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          from pathlib import Path
+          import os, shutil
+          source = hf_hub_download(repo_id=os.environ["HF_REPO"], filename=os.environ["HF_FILE"])
+          assert Path(source).stat().st_size > 900_000_000, "Modelo incompleto"
+          dest = Path("android-project/app/src/main/assets/qwen3-1.7b-q4.gguf")
+          dest.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copyfile(source, dest)
+          print("Modelo GGUF incluído nos assets:", dest.stat().st_size, "bytes")
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
       - name: Publicar APK para teste
         uses: actions/upload-artifact@v4
         with:
-          name: iris-android-debug-sem-neural
+          name: iris-android-com-qwen3-assets-sem-executor
           path: android-project/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
