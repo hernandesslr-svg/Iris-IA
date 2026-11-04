@@ -63,6 +63,20 @@ jobs:
           shutil.copyfile(source, dest)
           print("Modelo GGUF incluído nos assets:", dest.stat().st_size, "bytes")
           PY
+      - name: Evitar compactacao GGUF e estouro de memoria
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android-project/app/build.gradle.kts")
+          s = p.read_text()
+          if 'noCompress += "gguf"' not in s:
+              s += '\nandroid { androidResources { noCompress += "gguf" } }\n'
+          p.write_text(s)
+          props = Path("android-project/gradle.properties")
+          existing = props.read_text() if props.exists() else ""
+          existing = "\n".join(line for line in existing.splitlines() if not line.startswith("org.gradle.jvmargs="))
+          props.write_text(existing + "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\n")
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
