@@ -118,6 +118,7 @@ jobs:
         run: |
           cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
           cp iris-ui/IrisVoiceService.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceService.kt
+          cp iris-ui/IrisDeviceControl.kt android-project/app/src/main/java/com/iris/assistant/IrisDeviceControl.kt
           python3 iris-ui/apply_ui.py
           python3 - <<'PY'
           from pathlib import Path
@@ -127,6 +128,8 @@ jobs:
           s=s.replace('<application',permissions+'\n    <application',1)
           service = '<service android:name=".IrisVoiceService" android:exported="false" android:foregroundServiceType="microphone"/>'
           s=s.replace('</application>',service+'\n    </application>',1)
+          s=s.replace('<manifest', '<manifest', 1)
+          s=s.replace('<application', '<queries><intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent></queries>\n    <application',1)
           p.write_text(s)
           PY
       - name: Compilar APK debug da Iris
