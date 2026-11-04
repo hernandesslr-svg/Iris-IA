@@ -5,6 +5,87 @@ start=s.index("    override fun onCreate(savedInstanceState:")
 end=s.index("    private fun normalize(",start)
 new='''    private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
+    private var recognizer: android.speech.SpeechRecognizer? = null
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var listeningNow = false
+    private var activeUntil = 0L
+    private var stopped = false
+    private val restartSpeech = Runnable { startSpeechRecognition() }
+    private fun startSpeechRecognition() {
+        if (stopped || isFinishing || listeningNow) return
+        if (android.os.Build.VERSION.SDK_INT >= 23 &&
+            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        try {
+            if (recognizer == null) {
+                recognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(this)
+                recognizer?.setRecognitionListener(object: android.speech.RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) { hud.listening = true }
+                    override fun onBeginningOfSpeech() {}
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() {}
+                    override fun onError(error: Int) { finishRecognition() }
+                    override fun onResults(results: Bundle?) {
+                        val heard = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                        finishRecognition()
+                        if (!heard.isNullOrBlank()) processSpeech(heard)
+                    }
+                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+            listeningNow = true
+            recognizer?.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            })
+        } catch (_: Exception) { finishRecognition() }
+    }
+    private fun finishRecognition() {
+        listeningNow = false
+        hud.listening = false
+        handler.removeCallbacks(restartSpeech)
+        if (!stopped) handler.postDelayed(restartSpeech, 750)
+    }
+    private fun processSpeech(heard: String) {
+        val normalized = java.text.Normalizer.normalize(heard.lowercase(java.util.Locale.ROOT),
+            java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+        val match = Regex("\\biris\\b").find(normalized)
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (match != null) {
+            activeUntil = now + 50_000L
+            val command = heard.substring(match.range.last + 1).trim(' ', ',', '.', '!', '?')
+            if (command.isBlank()) subtitle.text = "Estou ouvindo..."
+            else { db.save("Você",command); speakAnswer(command) }
+        } else if (now < activeUntil) {
+            activeUntil = now + 50_000L
+            db.save("Você",heard)
+            speakAnswer(heard)
+        }
+    }
+    private fun requestSpeechPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 23 &&
+            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO),77)
+        else startSpeechRecognition()
+    }
+    override fun onRequestPermissionsResult(requestCode:Int, permissions:Array<out String>, grantResults:IntArray) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if (requestCode == 77 && grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)
+            startSpeechRecognition()
+    }
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(restartSpeech)
+        recognizer?.cancel()
+        listeningNow = false
+    }
+    override fun onResume() {
+        super.onResume()
+        if (::hud.isInitialized) requestSpeechPermission()
+    }
+
     private fun speakAnswer(message: String) {
         Thread {
             val answer = try { neural.generateOrNull(message) ?: respond(message) }
@@ -47,7 +128,7 @@ new='''    private lateinit var subtitle: TextView
                 android.app.AlertDialog.Builder(this@MainActivity)
                     .setTitle("Iris")
                     .setItems(options) { _, which ->
-                        if (which == 0) beginListening() else {
+                        if (which == 0) { activeUntil = android.os.SystemClock.elapsedRealtime() + 50_000L; subtitle.text = "Estou ouvindo..." } else {
                             val field = EditText(this@MainActivity)
                             android.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Mensagem para Iris")
@@ -64,7 +145,7 @@ new='''    private lateinit var subtitle: TextView
         column.addView(top,LinearLayout.LayoutParams(-1,64))
         hud = IrisHudView(this).apply {
             contentDescription = "Núcleo falante Iris. Toque para falar"
-            setOnClickListener { beginListening() }
+            setOnClickListener { activeUntil = android.os.SystemClock.elapsedRealtime() + 50_000L; subtitle.text = "Estou ouvindo..." }
         }
         column.addView(hud,LinearLayout.LayoutParams(-1,0,1f))
         subtitle = TextView(this).apply {
@@ -79,29 +160,15 @@ new='''    private lateinit var subtitle: TextView
         column.addView(subtitle,LinearLayout.LayoutParams(-1,160))
         entry = EditText(this)
         setContentView(root)
+        requestSpeechPermission()
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(id: String?) { runOnUiThread { hud.speaking = true } }
             override fun onDone(id: String?) { runOnUiThread { hud.speaking = false } }
             override fun onError(id: String?) { runOnUiThread { hud.speaking = false } }
         })
     }
-    private fun beginListening() {
-        try {
-            hud.listening = true
-            startActivityForResult(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE,"pt-BR")
-            },100)
-        } catch(e:Exception) {
-            hud.listening = false
-            Toast.makeText(this,"Reconhecimento de voz indisponível neste aparelho",Toast.LENGTH_LONG).show()
-        }
-    }
 '''
 s=s[:start]+new+s[end:]
-old='if(requestCode==100 && resultCode==RESULT_OK){ val heard=data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull(); if(heard!=null) entry.setText(heard) }'
-new='if(requestCode==100){ hud.listening=false; if(resultCode==RESULT_OK){ val heard=data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull(); if(!heard.isNullOrBlank()){ db.save("Você",heard); speakAnswer(heard) } } }'
-assert old in s,"Callback de voz alterado"
-s=s.replace(old,new)
+s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ stopped = true; handler.removeCallbacks(restartSpeech); recognizer?.destroy(); neural.close(); tts?.shutdown();')
 p.write_text(s)
 print("Interface Iris instalada",p.stat().st_size)
