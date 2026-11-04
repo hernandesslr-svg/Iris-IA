@@ -22,6 +22,8 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var memory: IrisMemory? = null
     private var statistical: IrisStatisticalModel? = null
     private var trigram: IrisTrigramGenerator? = null
+    private val audioGate = IrisAudioGate()
+    private var microphoneActivity = false
     private var running = false
     private var hearing = false
     private var talking = false
@@ -147,6 +149,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     }
     private fun speak(text:String,id:String) {
         talking = true
+        audioGate.setGuard(true)
         handler.removeCallbacks(retry)
         recognizer?.cancel()
         hearing = false
@@ -155,7 +158,12 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onError(error:Int) { if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
     override fun onBeginningOfSpeech() {}
-    override fun onRmsChanged(rmsdB:Float) {}
+    override fun onRmsChanged(rmsdB:Float) {
+        // Android SpeechRecognizer reports relative dB, not calibrated PCM RMS.
+        // This is an approximate activity diagnostic, not a replacement transcriber.
+        val level = Math.pow(10.0, (rmsdB.toDouble() - 20.0) / 20.0).coerceIn(0.0, 1.0)
+        microphoneActivity = audioGate.update(level, SystemClock.elapsedRealtime())
+    }
     override fun onBufferReceived(buffer:ByteArray?) {}
     override fun onEndOfSpeech() {}
     override fun onPartialResults(partialResults:Bundle?) {
@@ -171,7 +179,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         pt?.firstOrNull { !it.isNetworkConnectionRequired }?.let { tts?.voice = it }
         tts?.setOnUtteranceProgressListener(object: android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId:String?) {}
-            override fun onDone(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
+            override fun onDone(utteranceId:String?) { handler.post { talking=false; audioGate.setGuard(false); scheduleRetry() } }
             override fun onError(utteranceId:String?) { handler.post { talking=false; scheduleRetry() } }
         })
     }
