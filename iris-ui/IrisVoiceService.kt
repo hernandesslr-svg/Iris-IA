@@ -27,6 +27,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val diagnostics = IrisVoiceDiagnostics()
     private val echoGuard = IrisEchoGuard()
     private val activityState = IrisActivityState()
+    private val micCoordinator = IrisMicrophoneCoordinator()
     @Volatile private var responseSerial = 0L
     private var microphoneActivity = false
     private var running = false
@@ -61,6 +62,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onStartCommand(intent: Intent?, flags:Int, startId:Int):Int = START_STICKY
     private fun listen() {
         if (!running || hearing || talking || checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) return
+        if (!micCoordinator.acquire("speech")) return
         try {
             if (recognizer == null) recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { it.setRecognitionListener(this) }
             hearing = true
@@ -75,6 +77,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     }
     private fun scheduleRetry() {
         hearing = false
+        micCoordinator.release("speech")
         handler.removeCallbacks(retry)
         if (running && !talking) handler.postDelayed(retry,350)
     }
@@ -98,7 +101,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         return words.filterIndexed { index,word -> index==0 || !word.equals(words[index-1],ignoreCase=true) }.joinToString(" ")
     }
     private fun handleSpeech(text:String) {
-        val cleaned = hearOnce(text)
+        val cleaned = hearOnce(IrisTextSanitizer.cleanSpeech(text))
         val normalized = Normalizer.normalize(cleaned.lowercase(Locale.ROOT),Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"),"")
         val wake = Regex("\\biris\\b").find(normalized)
@@ -179,12 +182,14 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private fun speak(text:String,id:String) {
         talking = true
         activityState.change(IrisActivity.SPEAKING)
-        echoGuard.record(text)
+        val safeText = IrisOutputSafety.spokenText(text)
+        echoGuard.record(safeText)
         audioGate.setGuard(true)
         handler.removeCallbacks(retry)
         recognizer?.cancel()
         hearing = false
-        tts?.speak(text,TextToSpeech.QUEUE_FLUSH,null,id)
+        micCoordinator.release("speech")
+        tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
@@ -222,6 +227,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         handler.removeCallbacks(retry)
         recognizer?.cancel()
         recognizer?.destroy()
+        micCoordinator.release("speech")
         tts?.shutdown()
         neural?.close()
         super.onDestroy()
