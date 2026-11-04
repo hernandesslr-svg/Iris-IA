@@ -215,7 +215,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.cancel()
         hearing = false
         micCoordinator.release("speech")
-        if (cuesEnabled && IrisSoundPolicy.canPlayCue(false, false)) IrisAudioFeedback.confirm(this)
+        // No notification tone while TTS owns audio output.
         tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
@@ -230,9 +230,10 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     override fun onBufferReceived(buffer:ByteArray?) {
         if (buffer == null || buffer.size < 4 || talking) return
         // Android RecognitionListener delivers big-endian signed PCM16 when supported.
+        // SpeechRecognizer audio buffers are little-endian PCM16 when supplied.
         val samples = ShortArray(buffer.size / 2) { i ->
-            val hi = buffer[i * 2].toInt()
-            val lo = buffer[i * 2 + 1].toInt() and 0xff
+            val lo = buffer[i * 2].toInt() and 0xff
+            val hi = buffer[i * 2 + 1].toInt()
             ((hi shl 8) or lo).toShort()
         }
         val level = audioLevel.update(samples)
