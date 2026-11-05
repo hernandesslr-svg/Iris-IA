@@ -7,10 +7,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: write
+concurrency:
+  group: iris-neural-continuous-training
+  cancel-in-progress: false
 jobs:
   train:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,14 +22,38 @@ jobs:
           python-version: '3.11'
       - name: Install PyTorch CPU
         run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Train with full conversation corpus and held-out evaluation
+      - name: Restore latest training checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p iris-neural/artifacts
+          artifact_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="iris-neural-training" and .expired==false)] | sort_by(.created_at) | reverse | .[0].id // empty')
+          if [ -n "$artifact_id" ]; then
+            gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id/zip" > /tmp/iris-checkpoint.zip
+            unzip -o /tmp/iris-checkpoint.zip -d iris-neural/artifacts/
+            echo "Restored artifact $artifact_id"
+          else
+            echo "No prior checkpoint; starting from scratch"
+          fi
+      - name: Continue training toward 100000 steps
         run: |
           cd iris-neural
-          python train_full_conversation.py --steps 100000 --context 64 --batch-size 4 --output-dir artifacts
-      - name: Save model and evaluation
-        if: always()
+          python train_full_conversation.py --steps 100000 --minutes 20 --context 64 --batch-size 4 --output-dir artifacts
+      - name: Upload checkpoint
         uses: actions/upload-artifact@v4
         with:
           name: iris-neural-training
           path: iris-neural/artifacts/
           retention-days: 30
+      - name: Schedule next run until 100000
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          step=$(python -c "import json;print(json.load(open('iris-neural/artifacts/metrics.json'))['steps'])")
+          echo "Training reached step $step / 100000"
+          if [ "$step" -lt 100000 ]; then
+            gh workflow run iris-neural-training.yml --ref "${{ github.ref_name }}"
+            echo "Next training run dispatched"
+          else
+            echo "100000 steps reached; automatic continuation stopped"
+          fi
