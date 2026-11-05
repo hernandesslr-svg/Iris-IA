@@ -184,7 +184,7 @@ jobs:
           from pathlib import Path
           p=Path("android-project/app/src/main/AndroidManifest.xml")
           s=p.read_text()
-          permissions = '<uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>'
+          permissions = '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>'
           s=s.replace('<application',permissions+'\n    <application',1)
           service = '<service android:name=".IrisVoiceService" android:exported="false" android:foregroundServiceType="microphone"/>'
           s=s.replace('</application>',service+'\n    </application>',1)
