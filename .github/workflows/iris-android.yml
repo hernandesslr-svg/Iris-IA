@@ -207,10 +207,29 @@ jobs:
           from huggingface_hub import snapshot_download
           from pathlib import Path
           import shutil
-          source=Path(snapshot_download(repo_id="loudreader/loudr-1-turbo"))
+          required=[
+              "manifest.json", "release.json", "tokenizer.json",
+              "loudr-1-turbo.safetensors", "voices/ines.safetensors",
+              "onnx/t3_cond.onnx", "onnx/t3_prefill.onnx",
+              "onnx/t3_step.onnx", "onnx/flow_encoder.onnx",
+              "onnx/flow_estimator.onnx", "onnx/vocoder.onnx",
+          ]
+          source=Path(snapshot_download(
+              repo_id="loudreader/loudr-1-turbo",
+              allow_patterns=required,
+          ))
           target=Path("android-project/app/src/main/assets/loudkit")
-          shutil.copytree(source,target,dirs_exist_ok=True)
-          print("Modelo Loudkit offline:",sum(f.stat().st_size for f in target.rglob("*") if f.is_file()))
+          for relative in required:
+              original=source/relative
+              if not original.is_file():
+                  raise RuntimeError(f"Arquivo obrigatorio da voz Ines ausente: {relative}")
+              destination=target/relative
+              destination.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(original,destination)
+          total=sum(f.stat().st_size for f in target.rglob("*") if f.is_file())
+          print(f"Modelo Ines selecionado: {total/1024**2:.1f} MiB")
+          if total > 2_500_000_000:
+              raise RuntimeError("Modelo de voz acima do limite de seguranca de empacotamento")
           PY
       - name: Compilar JNI Loudkit Ines ARM64 e incluir ONNX Runtime
         run: |
