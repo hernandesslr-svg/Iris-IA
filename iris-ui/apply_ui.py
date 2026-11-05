@@ -165,8 +165,8 @@ s=s[:start]+new+s[end:]
 # O ZIP-base ainda traz declaracoes do motor externo fora do onCreate.
 # Remover apenas declaracoes legadas; chamadas ja foram substituidas acima.
 import re
-s=re.sub(r'^\\s*(?:private\\s+)?(?:lateinit\\s+)?var\\s+neural\\s*:[^\\n]*\\n','',s,flags=re.M)
-s=re.sub(r'^\\s*(?:private\\s+)?val\\s+neural\\s*=[^\\n]*\\n','',s,flags=re.M)
+s=re.sub(r'^\s*(?:private\s+)?(?:lateinit\s+)?var\s+neural\s*:[^\n]*\n','',s,flags=re.M)
+s=re.sub(r'^\s*(?:private\s+)?val\s+neural\s*=[^\n]*\n','',s,flags=re.M)
 
 s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ cameraGestures?.stop(); unregisterReceiver(voiceReceiver); tts?.shutdown();')
 s=s.replace("    override fun onStop(){", "    override fun onStop(){ cameraGestures?.stop(); cameraGestures = null;") if "    override fun onStop(){" in s else s
