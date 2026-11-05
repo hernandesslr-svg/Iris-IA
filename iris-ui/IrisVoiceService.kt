@@ -299,9 +299,26 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         // Optional nonverbal feedback, suppressed during microphone capture.
         soundscape.cue("ready", listening = hearing, speaking = false)
         if (!ines.speak(safeText,
-            onFallback = { tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id) },
+            onFallback = {
+                val failure = "Falha na voz Inês offline: " + ines.errorDetail()
+                android.util.Log.e("IrisVoiceService", failure)
+                sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName).putExtra("answer",failure))
+                talking=false
+                releaseAudioFocus()
+                audioGate.setGuard(false)
+                activityState.change(IrisActivity.ERROR)
+                scheduleRetry()
+            },
             onDone = { talking=false; releaseAudioFocus(); audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() }
-        )) tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
+        )) {
+            android.util.Log.e("IrisVoiceService","Motor Inês indisponível")
+            sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY").setPackage(packageName)
+                .putExtra("answer","Motor de voz Inês indisponível"))
+            talking=false
+            releaseAudioFocus()
+            audioGate.setGuard(false)
+            scheduleRetry()
+        }
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
