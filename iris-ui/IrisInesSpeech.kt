@@ -11,6 +11,8 @@ class IrisInesSpeech(private val context: Context) {
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var generation = 0
     private var player: MediaPlayer? = null
+    @Volatile private var lastError: String = ""
+    fun errorDetail(): String = lastError
 
     fun speak(text: String, onFallback: () -> Unit, onDone: () -> Unit): Boolean {
         val token = ++generation
@@ -40,7 +42,7 @@ class IrisInesSpeech(private val context: Context) {
                 }
                 file = File.createTempFile("iris-ines-", ".wav", context.cacheDir)
                 val result = IrisInesNative.synthesize(model.absolutePath, text, file.absolutePath)
-                if (result != 0) throw IllegalStateException("Erro de síntese: $result")
+                if (result != 0) throw IllegalStateException("Erro de síntese Inês: código $result")
                 val audio = requireNotNull(file)
                 main.post {
                     if (token != generation) { audio.delete(); return@post }
@@ -63,9 +65,11 @@ class IrisInesSpeech(private val context: Context) {
                         }
                         mp.prepare()
                         mp.start()
-                    } catch (_: Exception) { audio.delete(); onFallback() }
+                    } catch (error: Exception) { lastError = error.toString(); android.util.Log.e("IrisInes", "Falha na reprodução", error); audio.delete(); onFallback() }
                 }
-            } catch (_: Throwable) {
+            } catch (error: Throwable) {
+                lastError = error.toString()
+                android.util.Log.e("IrisInes", "Falha na síntese offline", error)
                 file?.delete()
                 main.post { if (token == generation) onFallback() }
             }
@@ -83,6 +87,7 @@ class IrisInesSpeech(private val context: Context) {
 }
 
 object IrisInesNative {
+    @Volatile private var initializedPath: String? = null
     private val loaded = try {
         System.loadLibrary("onnxruntime")
         System.loadLibrary("loudkit")
@@ -92,9 +97,18 @@ object IrisInesNative {
     fun synthesize(model: String, text: String, wav: String): Int {
         if (!loaded) return -10
         return try {
-            val init = nativeInit(model)
-            if (init != 0) init else nativeSynthesize(text, wav)
-        } catch (_: Throwable) { -11 }
+            synchronized(this) {
+                if (initializedPath != model) {
+                    val init = nativeInit(model)
+                    if (init != 0) return init
+                    initializedPath = model
+                }
+                nativeSynthesize(text, wav)
+            }
+        } catch (error: Throwable) {
+            android.util.Log.e("IrisInes", "Erro JNI Inês", error)
+            -11
+        }
     }
 
     private external fun nativeInit(model: String): Int
