@@ -65,35 +65,6 @@ jobs:
           shutil.copyfile(source, dest)
           print("Modelo GGUF incluído nos assets:", dest.stat().st_size, "bytes")
           PY
-      - name: Baixar modelo Kokoro pt-BR offline e voz feminina fixa
-        run: |
-          python3 -m pip install --quiet huggingface_hub
-          python3 - <<'PY'
-          from huggingface_hub import hf_hub_download
-          from pathlib import Path, PurePosixPath
-          from zipfile import ZipFile
-          source = hf_hub_download(repo_id="cristianoaredes/kokoro-pt-br", filename="letrinhas-kokoro-pt.zip")
-          dest = Path("android-project/app/src/main/assets/kokoro")
-          dest.mkdir(parents=True, exist_ok=True)
-          with ZipFile(source) as z:
-              for item in z.infolist():
-                  if item.is_dir(): continue
-                  parts = PurePosixPath(item.filename).parts
-                  if ".." in parts or not parts: raise RuntimeError("Arquivo Kokoro invalido")
-                  keep = next((i for i,p in enumerate(parts) if p in ("model.onnx","voices.bin","tokens.txt","espeak-ng-data")),None)
-                  if keep is None: continue
-                  rel = Path(*parts[keep:])
-                  target = dest / rel
-                  target.parent.mkdir(parents=True, exist_ok=True)
-                  with z.open(item) as src, target.open("wb") as out:
-                      import shutil
-                      shutil.copyfileobj(src,out)
-          for filename in ("model.onnx","voices.bin","tokens.txt"):
-              assert (dest/filename).is_file(), f"Kokoro incompleto: {filename}"
-          assert (dest/"model.onnx").stat().st_size > 100_000_000
-          assert (dest/"espeak-ng-data").is_dir()
-          print("Kokoro pt-BR incluido. Voz fixa planejada: pf_dora (speaker 42).")
-          PY
       - name: Evitar compactacao GGUF e estouro de memoria
         run: |
           python3 - <<'PY'
@@ -160,7 +131,7 @@ jobs:
           cp iris-ui/IrisHudView.kt android-project/app/src/main/java/com/iris/assistant/IrisHudView.kt
           cp iris-ui/IrisVoiceService.kt android-project/app/src/main/java/com/iris/assistant/IrisVoiceService.kt
           cp iris-ui/IrisFixedVoice.kt android-project/app/src/main/java/com/iris/assistant/IrisFixedVoice.kt
-          cp iris-ui/IrisEveSpeech.kt android-project/app/src/main/java/com/iris/assistant/IrisEveSpeech.kt
+          cp iris-ui/IrisInesSpeech.kt android-project/app/src/main/java/com/iris/assistant/IrisInesSpeech.kt
           cp iris-ui/IrisDeviceControl.kt android-project/app/src/main/java/com/iris/assistant/IrisDeviceControl.kt
           cp iris-ui/IrisMemory.kt android-project/app/src/main/java/com/iris/assistant/IrisMemory.kt
           cp iris-ui/IrisIntent.kt android-project/app/src/main/java/com/iris/assistant/IrisIntent.kt
@@ -229,13 +200,53 @@ jobs:
           print("Pesos originais Iris incluídos:",target.stat().st_size,"bytes")
           print("Assuntos:",len(weights["topic"]["classes"]),"Emoções:",len(weights["mood"]["classes"]))
           PY
+      - name: Preparar modelo Loudkit Ines offline
+        run: |
+          python3 -m pip install --quiet huggingface_hub
+          python3 - <<'PY'
+          from huggingface_hub import snapshot_download
+          from pathlib import Path
+          import shutil
+          source=Path(snapshot_download(repo_id="loudreader/loudr-1-turbo"))
+          target=Path("android-project/app/src/main/assets/loudkit")
+          shutil.copytree(source,target,dirs_exist_ok=True)
+          print("Modelo Loudkit offline:",sum(f.stat().st_size for f in target.rglob("*") if f.is_file()))
+          PY
+      - name: Compilar JNI Loudkit Ines ARM64 e incluir ONNX Runtime
+        run: |
+          set -euo pipefail
+          rustup target add aarch64-linux-android
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          export CC_aarch64_linux_android="$CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER"
+          export AR_aarch64_linux_android="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          git clone --depth 1 --branch v0.1.1 https://github.com/loudreader/loudkit.git /tmp/iris-loudkit
+          cd /tmp/iris-loudkit/rust
+          cp "$GITHUB_WORKSPACE/iris-native/iris_ines_bridge.rs" src/iris_ines_bridge.rs
+          printf '\nmod iris_ines_bridge;\n' >> src/lib.rs
+          printf '\n[lib]\ncrate-type = ["cdylib", "rlib"]\n' >> Cargo.toml
+          cargo add jni@0.21
+          cargo build --release --target aarch64-linux-android --lib
+          dest="$GITHUB_WORKSPACE/android-project/app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$dest"
+          cp target/aarch64-linux-android/release/libloudkit.so "$dest/"
+          cd "$GITHUB_WORKSPACE"
+          curl -fL --retry 3 -o /tmp/onnxruntime.aar https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.27.0/onnxruntime-android-1.27.0.aar
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from pathlib import Path
+          with ZipFile("/tmp/onnxruntime.aar") as z:
+              matches=[n for n in z.namelist() if n.endswith("/arm64-v8a/libonnxruntime.so")]
+              assert matches, "ONNX Runtime Android ARM64 ausente"
+              target=Path("android-project/app/src/main/jniLibs/arm64-v8a/libonnxruntime.so")
+              target.write_bytes(z.read(matches[0]))
+          PY
       - name: Auditar recursos da Iris no APK
         run: |
           python3 - <<'PY'
           from pathlib import Path
           base=Path("android-project/app/src/main")
           kotlin=base/"java/com/iris/assistant"
-          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisFixedVoice.kt","IrisEveSpeech.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisHandLandmarks.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
+          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisFixedVoice.kt","IrisInesSpeech.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisHandLandmarks.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
           missing=[name for name in required if not (kotlin/name).is_file()]
           assert not missing, f"Arquivos Android faltando: {missing}"
           weights=base/"assets/iris-lm-weights.json"
