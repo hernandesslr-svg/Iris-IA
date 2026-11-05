@@ -107,12 +107,13 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
             gravity = Gravity.CENTER
             contentDescription = "Configurações"
             setOnClickListener {
-                val options = arrayOf("Ouvir minha voz", "Digitar mensagem", "Ativar/desativar gestos por câmera", "Testar voz original da Iris", "Configurar chave xAI (Eve)")
+                val options = arrayOf("Ouvir minha voz", "Digitar mensagem", "Ativar/desativar gestos por câmera", "Testar voz original da Iris", "Voz Inês offline")
                 android.app.AlertDialog.Builder(this@MainActivity)
                     .setTitle("Iris")
                     .setItems(options) { _, which ->
                         if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else if (which == 2) { toggleCameraGestures() } else if (which == 3) { previewOriginalVoice() } else if (which == 4) {
-                            subtitle.text = "Voz Inês offline fixa. Nenhuma chave de API necessária."\n                        } else {
+                            subtitle.text = "Voz Inês offline fixa. Nenhuma chave de API necessária."
+                        } else {
                             val field = EditText(this@MainActivity)
                             android.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Mensagem para Iris")
