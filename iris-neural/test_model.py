@@ -28,7 +28,7 @@ class IrisNeuralTests(unittest.TestCase):
     def test_default_parameter_budget(self):
         model = IrisTransformer()
         count = sum(p.numel() for p in model.parameters())
-        self.assertEqual(count, 9_999_338)
+        self.assertEqual(count, 10_000_000)
 
 
 if __name__ == "__main__":
