@@ -11,7 +11,7 @@ on:
       - '.github/workflows/iris-android.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -277,6 +277,36 @@ jobs:
           else:
               raise RuntimeError("Pesos estatisticos originais nao incluidos no APK")
           print("Arquivos Kotlin obrigatorios presentes:",len(required))
+          PY
+      - name: Aplicar icone oficial da IRIS no Android
+        env:
+          IRIS_ICON_URL: 'https://media.canva.com/v2/image-resize/format:PNG/height:200/quality:100/uri:ifs%3A%2F%2FM%2F86b61845-b0e6-426f-9fef-590b58ea45b2/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAAI9cibAob9FGNPk6zw4wWDVjXwGPjV8y8C9YcO_KuEds&exp=1793886335&osig=AAAAAAAAAAAAAAAAAAAAAHtdb_GM5im8KAoWkdA0shNOgDNvLgWdenQtuDHZHhlR&signer=media-rpc&token=AAIAAU0AJDg2YjYxODQ1LWIwZTYtNDI2Zi05ZmVmLTU5MGI1OGVhNDViMgAAAAABoav1MBi-KBZSYecDq0Bbm1XNYrwtjSKvKvQD4q7vqAIIyxPcFQ&x-canva-quality=thumbnail'
+        run: |
+          set -euo pipefail
+          if [ ! -f iris-ui/iris_icon.png ]; then
+            curl -fLsS --retry 3 "$IRIS_ICON_URL" -o iris-ui/iris_icon.png
+            file iris-ui/iris_icon.png | grep -q 'PNG image data'
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add iris-ui/iris_icon.png
+            git commit -m 'Adicionar imagem oficial da IRIS ao repositorio'
+            git push origin HEAD:main
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, shutil
+          base=Path('android-project/app/src/main')
+          dest=base/'res/drawable-nodpi/iris_launcher.png'
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          shutil.copy2('iris-ui/iris_icon.png',dest)
+          manifest=base/'AndroidManifest.xml'
+          content=manifest.read_text()
+          content,n=re.subn(r'(<application\\b[^>]*?)\\sandroid:icon="[^"]*"',r'\\1 android:icon="@drawable/iris_launcher"',content,count=1)
+          if not n:
+              content,n=re.subn(r'<application\\b',r'<application android:icon="@drawable/iris_launcher"',content,count=1)
+          if not n: raise RuntimeError('Elemento application nao encontrado')
+          manifest.write_text(content)
+          print('Icone oficial IRIS aplicado:',dest.stat().st_size,'bytes')
           PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
