@@ -1,0 +1,66 @@
+name: Iris Ines - validar motor de voz offline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/iris-ines-engine.yml'
+      - 'iris-ui/IrisInesVoice.kt'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar ONNX Runtime 1.27
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o /tmp/ort.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-x64-1.27.0.tgz
+          mkdir -p /tmp/ort
+          tar -xzf /tmp/ort.tgz -C /tmp/ort --strip-components=1
+          echo "ORT_DYLIB_PATH=/tmp/ort/lib/libonnxruntime.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=/tmp/ort/lib" >> "$GITHUB_ENV"
+      - name: Compilar motor Loudkit Rust
+        run: |
+          git clone --depth 1 --branch v0.1.1 https://github.com/loudreader/loudkit.git /tmp/loudkit
+          cd /tmp/loudkit/rust
+          cargo build --release --example hello
+      - name: Sintetizar amostra real da Ines
+        run: |
+          mkdir -p /tmp/ines-smoke/src
+          cat > /tmp/ines-smoke/Cargo.toml <<'TOML'
+          [package]
+          name = "ines-smoke"
+          version = "0.1.0"
+          edition = "2021"
+          [dependencies]
+          loudkit = { path = "/tmp/loudkit/rust" }
+          TOML
+          cat > /tmp/ines-smoke/src/main.rs <<'RS'
+          use loudkit::engine::{Engine, Options};
+          fn main() -> Result<(), String> {
+              let mut engine = Engine::load("loudreader/loudr-1-turbo")?;
+              let voice = engine.voice("ines")?;
+              let audio = engine.synthesize(
+                  "Olá! Eu sou a Iris. Esta é a minha voz em português brasileiro.",
+                  &voice,
+                  &Options::default(),
+              )?;
+              audio.save_wav("ines-pt-br.wav")?;
+              Ok(())
+          }
+          RS
+          cd /tmp/ines-smoke
+          cargo run --release
+          test -s ines-pt-br.wav
+          cp ines-pt-br.wav "$GITHUB_WORKSPACE/ines-pt-br.wav"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iris-ines-amostra-pt-br
+          path: ines-pt-br.wav
+          if-no-files-found: error
