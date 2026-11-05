@@ -71,8 +71,7 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
     }
     private fun speakAnswer(message: String) {
         Thread {
-            val answer = try { neural.generateOrNull(message) ?: respond(message) }
-                catch (_: Exception) { respond(message) }
+            val answer = respond(message)
             runOnUiThread {
                 if (!isFinishing && !isDestroyed) {
                     db.save("Iris", answer)
@@ -88,7 +87,6 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
         db = ChatStore()
-        neural = IrisNeuralCore(this)
         topics = JSONArray(assets.open("topics.json").bufferedReader().use { it.readText() })
         languageEngine = try { IrisLanguageEngine(this) } catch (_: Exception) { null }
         tts = TextToSpeech(this, this)
@@ -164,7 +162,7 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
     }
 '''
 s=s[:start]+new+s[end:]
-s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ cameraGestures?.stop(); unregisterReceiver(voiceReceiver); neural.close(); tts?.shutdown();')
+s=s.replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ cameraGestures?.stop(); unregisterReceiver(voiceReceiver); tts?.shutdown();')
 s=s.replace("    override fun onStop(){", "    override fun onStop(){ cameraGestures?.stop(); cameraGestures = null;") if "    override fun onStop(){" in s else s
 p.write_text(s)
 print("Interface Iris instalada",p.stat().st_size)
