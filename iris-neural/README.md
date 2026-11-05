@@ -24,3 +24,14 @@ O modelo usa um filtro temporal causal depthwise de dois passos em 331 canais (6
 ## Experimento inicial de raciocinio
 
 Corpus original de demonstracao: `dados/raciocinio_inicial.txt`. Contem apenas alguns exemplos de aritmetica, logica e verificacao, suficientes para testar o pipeline, **nao** para ensinar raciocinio geral. Execute `python iris-neural/train.py --corpus iris-neural/dados/raciocinio_inicial.txt --out checkpoints --steps 100`. Um checkpoint so deve ser chamado de treinado depois que essa execucao realmente terminar e as avaliacoes forem realizadas.
+
+## Conversacao sem duplicatas
+
+Os 40 dialogos originais estao em `dados/conversas_originais.json`. Prepare o texto de treino com:
+
+```bash
+python iris-neural/prepare_dialogues.py --source iris-neural/dados/conversas_originais.json --out iris-neural/dados/conversas_treino.txt
+python iris-neural/train.py --corpus iris-neural/dados/conversas_treino.txt --out checkpoints-conversa --steps 100
+```
+
+O preparador remove perguntas identicas apos normalizacao e interrompe se houver respostas conflitantes. O treinamento grava o hash SHA-256 do corpus no checkpoint e rejeita `--resume` com corpus alterado. Isso evita repeticao acidental de exemplos no arquivo, mas nao impede que um mesmo exemplo seja amostrado varias vezes durante o treinamento por etapas (isso e normal em aprendizado de maquina). Os exemplos sao apenas demonstrativos; nao garantem conversacao competente.
