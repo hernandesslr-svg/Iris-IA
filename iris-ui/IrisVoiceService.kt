@@ -20,6 +20,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var tts: TextToSpeech? = null
     private val ines by lazy { IrisInesSpeech(this) }
     private var memory: IrisMemory? = null
+    private val languageEngine by lazy { IrisLanguageEngineFactory.create(this) }
     private var statistical: IrisStatisticalModel? = null
     private var trigram: IrisTrigramGenerator? = null
     private val audioGate = IrisAudioGate()
@@ -255,7 +256,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
                 IrisIntent.Kind.SEARCH -> "Pergunta factual. Se não souber ou exigir dados atuais, diga que não pode confirmar. Pergunta: $command"
                 IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Assunto: $topic. Mensagem: $command"
             }
-            val answer: String? = null
+            val answer = if (languageEngine.ready) try { languageEngine.generate(prompt) } catch (_: Exception) { null } else null
             val local = if (answer.isNullOrBlank() && intent == IrisIntent.Kind.CHAT) {
                 val moodKey = when (mood.lowercase(Locale.ROOT)) {
                     "neg", "negativo", "triste", "raiva" -> "neg"
@@ -366,6 +367,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.destroy()
         micCoordinator.release("speech")
         ines.stop()
+        languageEngine.close()
         tts?.shutdown()
         soundscape.close()
         releaseAudioFocus()
