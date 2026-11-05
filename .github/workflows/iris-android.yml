@@ -48,71 +48,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Baixar Qwen3 1.7B Q4_K_M diretamente do Hugging Face
-        env:
-          HF_REPO: unsloth/Qwen3-1.7B-GGUF
-          HF_FILE: Qwen3-1.7B-Q4_K_M.gguf
-        run: |
-          python3 -m pip install --quiet huggingface_hub
-          python3 - <<'PY'
-          from huggingface_hub import hf_hub_download
-          from pathlib import Path
-          import os, shutil
-          source = hf_hub_download(repo_id=os.environ["HF_REPO"], filename=os.environ["HF_FILE"])
-          assert Path(source).stat().st_size > 900_000_000, "Modelo incompleto"
-          dest = Path("android-project/app/src/main/assets/qwen3-1.7b-q4.gguf")
-          dest.parent.mkdir(parents=True, exist_ok=True)
-          shutil.copyfile(source, dest)
-          print("Modelo GGUF incluído nos assets:", dest.stat().st_size, "bytes")
-          PY
-      - name: Evitar compactacao GGUF e estouro de memoria
+      - name: Remover recursos antigos de modelos externos
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("android-project/app/build.gradle.kts")
-          s = p.read_text()
-          if 'noCompress += listOf("gguf", "onnx", "bin")' not in s:
-              s += '\nandroid { androidResources { noCompress += "gguf" } }\n'
-          p.write_text(s)
-          props = Path("android-project/gradle.properties")
-          existing = props.read_text() if props.exists() else ""
-          existing = "\n".join(line for line in existing.splitlines() if not line.startswith("org.gradle.jvmargs="))
-          props.write_text(existing + "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\n")
-          PY
-      - name: Integrar llama.cpp JNI e conversa offline
-        run: |
-          set -e
-          git clone --depth 1 --branch master https://github.com/ggml-org/llama.cpp.git android-project/app/src/main/cpp/llama.cpp
-          cp iris-native/iris_native.cpp android-project/app/src/main/cpp/
-          cp iris-native/CMakeLists.txt android-project/app/src/main/cpp/
-          cp iris-native/IrisNeuralCore.kt android-project/app/src/main/java/com/iris/assistant/IrisNeuralCore.kt
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("android-project/app/build.gradle.kts")
-          s=p.read_text()
-          s += """
-          android {
-              defaultConfig { ndk { abiFilters += listOf("arm64-v8a") } }
-              externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt") } }
-          }
-          """
-          p.write_text(s)
-          p=Path("android-project/app/src/main/java/com/iris/assistant/MainActivity.kt")
-          s=p.read_text()
-          old='val answer=neural.generateOrNull(msg) ?: respond(msg); addMessage("Iris",answer); if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris") ;scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }'
-          new='''Thread {
-              val answer = try { neural.generateOrNull(msg) ?: respond(msg) }
-                  catch (e: Exception) { "Falha no modelo neural: ${e.message}" }
-              runOnUiThread {
-                  if (!isFinishing && !isDestroyed) {
-                      addMessage("Iris",answer)
-                      if(speechReady) tts?.speak(answer,TextToSpeech.QUEUE_FLUSH,null,"iris")
-                      scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
-                  }
-              }
-          }.start()'''
-          assert old in s
-          p.write_text(s.replace(old,new).replace('override fun onDestroy(){ tts?.shutdown();', 'override fun onDestroy(){ neural.close(); tts?.shutdown();'))
+          base=Path("android-project/app/src/main")
+          for pattern in ("*.gguf","*qwen*","*llama*"):
+              for path in base.rglob(pattern):
+                  if path.is_file(): path.unlink()
           PY
       - name: Instalar MediaPipe e modelo de maos offline
         run: |
@@ -265,7 +208,7 @@ jobs:
           from pathlib import Path
           base=Path("android-project/app/src/main")
           kotlin=base/"java/com/iris/assistant"
-          required=["IrisNeuralCore.kt","IrisVoiceService.kt","IrisFixedVoice.kt","IrisInesSpeech.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisHandLandmarks.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
+          required=["IrisVoiceService.kt","IrisFixedVoice.kt","IrisInesSpeech.kt","IrisMemory.kt","IrisIntent.kt","IrisStatisticalModel.kt","IrisDeviceControl.kt","IrisHudView.kt","IrisTrigramGenerator.kt","IrisAudioGate.kt","IrisOneEuro.kt","IrisClapDetector.kt","IrisAudioLevel.kt","IrisCameraGestures.kt","IrisHandLandmarks.kt","IrisSoundscape.kt","IrisJarvisToolkit.kt","IrisCapabilities.kt","IrisVoiceDiagnostics.kt"]
           missing=[name for name in required if not (kotlin/name).is_file()]
           assert not missing, f"Arquivos Android faltando: {missing}"
           weights=base/"assets/iris-lm-weights.json"
@@ -314,7 +257,7 @@ jobs:
       - name: Publicar APK para teste
         uses: actions/upload-artifact@v4
         with:
-          name: iris-android-qwen3-neural-jni
+          name: iris-android-iris-neural
           path: android-project/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
