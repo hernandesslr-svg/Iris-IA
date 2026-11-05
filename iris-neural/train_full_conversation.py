@@ -20,7 +20,7 @@ def main():
     cutoff=max(1,round(len(pairs)*.1))
     heldout=pairs[:cutoff];train=pairs[cutoff:]
     def encode(items):
-        return torch.tensor(list((''.join('Usuário: '+x['user']+'\\nIRIS: '+x['assistant']+'\\n\\n' for x in items)).encode('utf-8')),dtype=torch.long)
+        return torch.tensor(list((''.join('Usuário: '+x['user']+'\nIRIS: '+x['assistant']+'\n\n' for x in items)).encode('utf-8')),dtype=torch.long)
     tr=encode(train);va=encode(heldout)
     assert len(tr)>args.context+1 and len(va)>args.context+1
     model=IrisTransformer()
@@ -53,7 +53,7 @@ def main():
             torch.save({'model':model.state_dict(),'optimizer':optimizer.state_dict(),'step':step,'parameters':sum(p.numel() for p in model.parameters()),'train_examples':len(train),'heldout_examples':len(heldout)},out/'checkpoint.pt')
             (out/'metrics.json').write_text(json.dumps({'steps':step,'train_examples':len(train),'heldout_examples':len(heldout),'validation':validation,'elapsed_seconds':time.time()-start,'status':'experimental_not_complete'},indent=2),encoding='utf-8')
     model.eval()
-    prompt='Usuário: Oi, tudo bem?\\nIRIS: '
+    prompt='Usuário: Oi, tudo bem?\nIRIS: '
     tokens=torch.tensor([list(prompt.encode('utf-8'))],dtype=torch.long)
     with torch.no_grad():
         for _ in range(100):
