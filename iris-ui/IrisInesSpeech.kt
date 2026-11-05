@@ -41,7 +41,7 @@ class IrisInesSpeech(private val context: Context) {
                 file = File.createTempFile("iris-ines-", ".wav", context.cacheDir)
                 val result = IrisInesNative.synthesize(model.absolutePath, text, file.absolutePath)
                 if (result != 0) throw IllegalStateException("Erro de síntese: $result")
-                val audio = file
+                val audio = requireNotNull(file)
                 main.post {
                     if (token != generation) { audio.delete(); return@post }
                     try {
