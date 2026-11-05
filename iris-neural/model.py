@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class IrisTransformer(nn.Module):
-    def __init__(self, vocab_size=256, dim=368, layers=6, heads=8, context=256, ff_dim=1472):
+    def __init__(self, vocab_size=256, dim=368, layers=6, heads=8, context=256, ff_dim=1479):
         super().__init__()
         self.context = context
         self.token = nn.Embedding(vocab_size, dim)
