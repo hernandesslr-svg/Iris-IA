@@ -11,9 +11,11 @@ Desenvolver um modelo causal Transformer próprio da IRIS, com aproximadamente 1
 - Feed-forward: 1479 dimensões
 - Contexto máximo inicial: 256 tokens
 - Embedding e projeção de saída com pesos compartilhados
-- Contagem calculada da arquitetura padrão: 9.999.338 parâmetros
+- Contagem calculada da arquitetura padrão: 10.000.000 parâmetros
 
 A arquitetura está definida em `iris-neural/model.py`. A configuração pode evoluir após os testes de treinamento e desempenho.
+
+- Filtro temporal causal local de 662 pesos, complementar à atenção
 
 ## Componentes preparados
 - Arquitetura de rede neural e geração de tokens
