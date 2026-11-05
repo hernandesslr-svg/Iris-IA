@@ -20,7 +20,7 @@ object IrisCapabilities {
         val offline = if (android.os.Build.VERSION.SDK_INT >= 31)
             SpeechRecognizer.isOnDeviceRecognitionAvailable(context) else false
         val weights = try { context.assets.open("iris-lm-weights.json").use { true } } catch (_: Exception) { false }
-        val neural = try { context.assets.list("")?.any { it.endsWith(".gguf") } == true } catch (_: Exception) { false }
+        val neural = try { false } catch (_: Exception) { false }
         return Status(mic, speech, offline, weights, neural)
     }
 }
