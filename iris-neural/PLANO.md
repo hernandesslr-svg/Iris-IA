@@ -1,30 +1,35 @@
-# IRIS Neural — treinamento do zero no Galaxy A55
+# IRIS Neural — modelo próprio de linguagem
 
-Objetivo: modelo causal Transformer de aproximadamente 10 milhões de parâmetros, sem pesos ou tokenizer Qwen.
+## Objetivo
+Desenvolver um modelo causal Transformer próprio da IRIS, com aproximadamente 10 milhões de parâmetros, para inferência offline no Android.
 
-## Regras do projeto
-- Pesos inicializados aleatoriamente; tokenizer treinado apenas com corpus autorizado em português.
-- Treinamento e inferência locais no Android ARM64; nenhum serviço remoto de IA.
-- Treinamento incremental em blocos pequenos, checkpoint persistente e pausa por temperatura/bateria.
-- Voz Inês é componente separado e deve passar em teste de síntese real.
-- A qualidade linguística não é garantida pela contagem de parâmetros.
-
-## Arquitetura inicial proposta
-- Vocabulário: 8192 tokens
-- Embedding: 256 dimensões
-- 6 camadas Transformer decoder
+## Arquitetura implementada no código inicial
+- Tokenizador inicial: bytes UTF-8, 256 símbolos
+- Embedding: 368 dimensões
+- 6 camadas Transformer causais
 - 8 cabeças de atenção
-- Feed-forward: 1024 dimensões
-- Contexto inicial: 256 tokens
-- Pesos de embedding e saída compartilhados
-- Aproximadamente 10 milhões de parâmetros (a contagem exata será aferida pelo código executável)
+- Feed-forward: 1472 dimensões
+- Contexto máximo inicial: 256 tokens
+- Embedding e projeção de saída com pesos compartilhados
+- Contagem calculada da arquitetura padrão: 9.968.384 parâmetros
 
-## Critérios para substituir o motor antigo
-1. Inicializar pesos e tokenizer próprios no dispositivo.
-2. Treinar em corpus português consentido e salvar/restaurar checkpoint.
-3. Gerar texto por inferência sem Qwen, GGUF ou llama.cpp.
-4. Medir RAM, temperatura e tokens/s no A55.
-5. Remover todas as referências e dependências Qwen do APK e do workflow.
-6. Compilar e testar a voz Inês separadamente.
+A arquitetura está definida em `iris-neural/model.py`. A configuração pode evoluir após os testes de treinamento e desempenho.
 
-**Status:** especificação inicial; o treinamento ainda não começou. Não apresentar APK como pronto até que os testes acima passem.
+## Componentes preparados
+- Arquitetura de rede neural e geração de tokens
+- Script de treinamento com salvamento e retomada de checkpoints
+- Testes básicos do modelo
+- Contrato Android `IrisLanguageEngine` para futura inferência
+- Mecanismo local provisório de conversação até o modelo neural funcionar
+
+## Etapas pendentes
+1. Validar os testes automatizados em ambiente com PyTorch.
+2. Preparar corpus autorizado de português brasileiro e melhorar o tokenizer.
+3. Executar treinamento real, medir perda e avaliar respostas.
+4. Exportar pesos e implementar inferência nativa no Android.
+5. Medir memória, temperatura e velocidade no Galaxy A55.
+6. Testar separadamente a síntese da voz Inês.
+7. Somente depois da validação completa, liberar compilação do APK final.
+
+## Status real
+**Modelo em desenvolvimento. Não treinado. Sem pesos neurais finais e sem runtime de inferência Android funcional.** Não apresentar o aplicativo como concluído.
