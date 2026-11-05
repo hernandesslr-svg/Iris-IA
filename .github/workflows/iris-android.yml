@@ -269,9 +269,24 @@ jobs:
           manifest.write_text(content)
           print('Icone oficial IRIS aplicado:',dest.stat().st_size,'bytes')
           PY
+      - name: Configurar memoria de compilacao e assets sem compressao
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-project/gradle.properties")
+          s=p.read_text() if p.exists() else ""
+          import re
+          s=re.sub(r"(?m)^org.gradle.jvmargs=.*$", "", s)
+          s += "\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\norg.gradle.parallel=false\n"
+          p.write_text(s)
+          p=Path("android-project/app/build.gradle.kts")
+          s=p.read_text()
+          s += '\nandroid { androidResources { noCompress += listOf("onnx", "bin", "gguf", "safetensors") } }\n'
+          p.write_text(s)
+          PY
       - name: Compilar APK debug da Iris
         working-directory: android-project
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --max-workers=2 --stacktrace :app:assembleDebug
       - name: Publicar APK para teste
         uses: actions/upload-artifact@v4
         with:
