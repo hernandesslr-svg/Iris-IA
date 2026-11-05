@@ -74,8 +74,12 @@ jobs:
         run: |
           git clone --depth 1 --branch v0.1.1 https://github.com/loudreader/loudkit.git /tmp/loudkit
           cd /tmp/loudkit/rust
+          cp "$GITHUB_WORKSPACE/iris-native/iris_ines_bridge.rs" src/iris_ines_bridge.rs
+          printf '\nmod iris_ines_bridge;\n' >> src/lib.rs
+          printf '\n[lib]\ncrate-type = ["cdylib", "rlib"]\n' >> Cargo.toml
           cargo build --locked --release --target aarch64-linux-android --lib
       - name: Confirmar biblioteca compilada
         run: |
-          test -s /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.rlib
-          file /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.rlib
+          test -s /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.so
+          file /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.so
+
