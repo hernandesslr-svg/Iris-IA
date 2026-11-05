@@ -17,6 +17,10 @@ class IrisTransformer(nn.Module):
             ) for _ in range(layers)
         ])
         self.norm = nn.LayerNorm(dim)
+        # 662 pesos funcionais: filtro causal local de 2 passos em 331 canais.
+        # Complementa a atencao com mistura temporal local, sem duplicar camadas.
+        self.local_filter = nn.Conv1d(331, 331, kernel_size=2, groups=331, bias=False)
+        nn.init.zeros_(self.local_filter.weight)
         self.head = nn.Linear(dim, vocab_size, bias=False)
         self.head.weight = self.token.weight
 
@@ -29,7 +33,10 @@ class IrisTransformer(nn.Module):
         mask = torch.triu(torch.ones(length, length, dtype=torch.bool, device=tokens.device), diagonal=1)
         for block in self.blocks:
             x = block(x, src_mask=mask)
-        logits = self.head(self.norm(x))
+        x = self.norm(x)
+        local = self.local_filter(F.pad(x[:, :, :331].transpose(1, 2), (1, 0))).transpose(1, 2)
+        x = torch.cat((x[:, :, :331] + local, x[:, :, 331:]), dim=-1)
+        logits = self.head(x)
         loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1)) if targets is not None else None
         return logits, loss
 
