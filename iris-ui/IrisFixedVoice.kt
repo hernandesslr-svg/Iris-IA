@@ -8,7 +8,8 @@ import java.util.Locale
  * Single fixed Iris voice policy. No voice picker.
  *
  * Online target: xAI Eve (fixed voice ID).
- * Offline fallback: Android pt-BR until a local neural voice is integrated.
+ * Offline fallback: fixed local Android pt-BR voice; no voice selector.
+ * A resemblance to Eve is not guaranteed across devices.
  * Never bundle API secrets in the APK.
  */
 object IrisFixedVoice {
@@ -25,7 +26,7 @@ object IrisFixedVoice {
         val voices = tts.voices.orEmpty()
             .filter { it.locale.language == "pt" && it.locale.country == "BR" && !it.isNetworkConnectionRequired }
         // Keep the selection stable on a given device rather than switching voices.
-        voices.sortedBy { it.name }.firstOrNull()?.let { tts.voice = it }
+        voices.sortedWith(compareBy<android.speech.tts.Voice> { it.quality != android.speech.tts.Voice.QUALITY_VERY_HIGH }.thenBy { it.quality != android.speech.tts.Voice.QUALITY_HIGH }.thenBy { it.name }).firstOrNull()?.let { tts.voice = it }
     }
 
     fun kokoroAssetsPresent(context: Context): Boolean {
