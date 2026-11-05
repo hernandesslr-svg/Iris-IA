@@ -40,7 +40,7 @@ class IrisEveSpeech(private val context: Context) {
         prefs.edit().putString("key", Base64.encodeToString(cipher.iv + bytes, Base64.NO_WRAP)).apply()
     }
 
-    private fun readApiKey(): String? = try {
+    private fun readApiKey(): String? { return try {
         val encoded = prefs.getString("key", null) ?: return null
         val data = Base64.decode(encoded, Base64.DEFAULT)
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -49,6 +49,7 @@ class IrisEveSpeech(private val context: Context) {
         cipher.init(Cipher.DECRYPT_MODE, secret, GCMParameterSpec(128, data.copyOfRange(0, 12)))
         String(cipher.doFinal(data.copyOfRange(12, data.size)), Charsets.UTF_8)
     } catch (_: Exception) { null }
+    }
 
     fun configured(): Boolean = !readApiKey().isNullOrBlank()
 
