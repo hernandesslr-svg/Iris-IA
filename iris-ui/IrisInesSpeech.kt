@@ -1,0 +1,83 @@
+package com.iris.assistant
+
+import android.content.Context
+import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
+import java.io.File
+
+/** Reprodutor local da voz Inês. Não usa serviços externos. */
+class IrisInesSpeech(private val context: Context) {
+    private val main = Handler(Looper.getMainLooper())
+    @Volatile private var generation = 0
+    private var player: MediaPlayer? = null
+
+    fun speak(text: String, onFallback: () -> Unit, onDone: () -> Unit): Boolean {
+        val token = ++generation
+        Thread {
+            var file: File? = null
+            try {
+                val model = File(context.filesDir, "loudkit")
+                if (!model.isDirectory) throw IllegalStateException("Modelo offline ausente")
+                file = File.createTempFile("iris-ines-", ".wav", context.cacheDir)
+                val result = IrisInesNative.synthesize(model.absolutePath, text, file.absolutePath)
+                if (result != 0) throw IllegalStateException("Erro de síntese: $result")
+                val audio = file
+                main.post {
+                    if (token != generation) { audio.delete(); return@post }
+                    try {
+                        val mp = MediaPlayer()
+                        player = mp
+                        mp.setDataSource(audio.absolutePath)
+                        mp.setOnCompletionListener {
+                            it.release()
+                            if (player === it) player = null
+                            audio.delete()
+                            onDone()
+                        }
+                        mp.setOnErrorListener { p, _, _ ->
+                            p.release()
+                            if (player === p) player = null
+                            audio.delete()
+                            onFallback()
+                            true
+                        }
+                        mp.prepare()
+                        mp.start()
+                    } catch (_: Exception) { audio.delete(); onFallback() }
+                }
+            } catch (_: Throwable) {
+                file?.delete()
+                main.post { if (token == generation) onFallback() }
+            }
+        }.start()
+        return true
+    }
+
+    fun stop() {
+        generation++
+        main.post {
+            try { player?.stop(); player?.release() } catch (_: Exception) {}
+            player = null
+        }
+    }
+}
+
+object IrisInesNative {
+    private val loaded = try {
+        System.loadLibrary("onnxruntime")
+        System.loadLibrary("loudkit")
+        true
+    } catch (_: Throwable) { false }
+
+    fun synthesize(model: String, text: String, wav: String): Int {
+        if (!loaded) return -10
+        return try {
+            val init = nativeInit(model)
+            if (init != 0) init else nativeSynthesize(text, wav)
+        } catch (_: Throwable) { -11 }
+    }
+
+    private external fun nativeInit(model: String): Int
+    private external fun nativeSynthesize(text: String, wav: String): Int
+}
