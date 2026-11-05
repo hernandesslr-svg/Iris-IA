@@ -18,7 +18,26 @@ class IrisInesSpeech(private val context: Context) {
             var file: File? = null
             try {
                 val model = File(context.filesDir, "loudkit")
-                if (!model.isDirectory) throw IllegalStateException("Modelo offline ausente")
+                if (!File(model, ".ready").exists()) {
+                    model.mkdirs()
+                    fun extract(dir: String) {
+                        for (entry in context.assets.list(dir).orEmpty()) {
+                            val assetPath = if (dir.isEmpty()) entry else "$dir/$entry"
+                            val children = context.assets.list(assetPath).orEmpty()
+                            if (children.isNotEmpty()) extract(assetPath)
+                            else {
+                                val relative = assetPath.removePrefix("loudkit/")
+                                val target = File(model, relative)
+                                target.parentFile?.mkdirs()
+                                context.assets.open(assetPath).use { input ->
+                                    target.outputStream().use { output -> input.copyTo(output) }
+                                }
+                            }
+                        }
+                    }
+                    extract("loudkit")
+                    File(model, ".ready").writeText("ok")
+                }
                 file = File.createTempFile("iris-ines-", ".wav", context.cacheDir)
                 val result = IrisInesNative.synthesize(model.absolutePath, text, file.absolutePath)
                 if (result != 0) throw IllegalStateException("Erro de síntese: $result")
