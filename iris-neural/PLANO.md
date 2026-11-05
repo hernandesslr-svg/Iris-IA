@@ -35,3 +35,15 @@ A arquitetura está definida em `iris-neural/model.py`. A configuração pode ev
 
 ## Status real
 **Modelo em desenvolvimento. Não treinado. Sem pesos neurais finais e sem runtime de inferência Android funcional.** Não apresentar o aplicativo como concluído.
+
+## Prioridade de treinamento: conversacao cotidiana
+
+A IRIS continua com **10.000.000 de parametros compartilhados**. Nao ha divisao fixa de 1 milhao de pesos para um tema: o treinamento de conversacao ajusta a rede inteira.
+
+Meta de dados, **nao de parametros**: construir gradualmente ate 1.000.000 de dialogos de alta qualidade, originais/licenciados, com perguntas, respostas e turnos encadeados. Essa quantidade e uma meta futura, nao dados ja existentes.
+
+Categorias planejadas: cumprimentos, rotina, familia, amizades, trabalho, escola, estudos, tecnologia, compras, transporte, alimentacao, lazer, sentimentos, planejamento, explicacoes, duvidas, correcoes, despedidas e mudanca de assunto. Separar treino/validacao/teste por conversa e por grupo de semelhanca para reduzir vazamento.
+
+Qualidade: rejeitar duplicatas exatas; revisar parafrases e intencoes redundantes; nao multiplicar frases artificialmente para inflar a contagem; evitar respostas inventadas; medir capacidade de continuar conversas de varios turnos. Os exemplos atuais sao pares curtos e **ainda nao** ensinam memoria conversacional longa. O contexto atual de 256 bytes limita fortemente dialogos longos; ampliar contexto exige avaliar memoria e desempenho.
+
+Proxima etapa tecnica: corpus estruturado por dialogo, verificador de duplicatas semanticas, particionamento treino/validacao/teste e avaliacao em conversas ineditas antes de qualquer afirmacao de aprendizado.
