@@ -56,3 +56,24 @@ jobs:
           name: iris-ines-amostra-pt-br
           path: ines-pt-br.wav
           if-no-files-found: error
+
+  android-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar toolchain Rust Android
+        run: |
+          rustup target add aarch64-linux-android
+          test -d "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+          echo "CC_aarch64_linux_android=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+      - name: Compilar Loudkit para Android ARM64
+        run: |
+          git clone --depth 1 --branch v0.1.1 https://github.com/loudreader/loudkit.git /tmp/loudkit
+          cd /tmp/loudkit/rust
+          cargo build --locked --release --target aarch64-linux-android --lib
+      - name: Confirmar biblioteca compilada
+        run: |
+          test -s /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.rlib
+          file /tmp/loudkit/rust/target/aarch64-linux-android/release/libloudkit.rlib
