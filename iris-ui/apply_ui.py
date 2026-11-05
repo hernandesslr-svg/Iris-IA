@@ -3,7 +3,7 @@ p=Path("android-project/app/src/main/java/com/iris/assistant/MainActivity.kt")
 s=p.read_text()
 start=s.index("    override fun onCreate(savedInstanceState:")
 end=s.index("    private fun normalize(",start)
-new=r'''    private val eveSpeech by lazy { IrisEveSpeech(this) }
+new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
     private lateinit var subtitle: TextView
     private lateinit var hud: IrisHudView
     private var cameraGestures: IrisCameraGestures? = null
@@ -78,7 +78,7 @@ new=r'''    private val eveSpeech by lazy { IrisEveSpeech(this) }
                     db.save("Iris", answer)
                     subtitle.text = answer
                     hud.speaking = speechReady
-                    if (speechReady && !eveSpeech.speak(answer, { tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "iris") }, { hud.speaking = false })) tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "iris")
+                    if (speechReady && !inesSpeech.speak(answer, { tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "iris") }, { hud.speaking = false })) tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "iris")
                 }
             }
         }.start()
@@ -112,18 +112,7 @@ new=r'''    private val eveSpeech by lazy { IrisEveSpeech(this) }
                     .setTitle("Iris")
                     .setItems(options) { _, which ->
                         if (which == 0) { startVoiceService(); subtitle.text = "Diga Iris para começar." } else if (which == 2) { toggleCameraGestures() } else if (which == 3) { previewOriginalVoice() } else if (which == 4) {
-                            val field = EditText(this@MainActivity)
-                            field.hint = "Chave de API xAI"
-                            field.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-                            android.app.AlertDialog.Builder(this@MainActivity)
-                                .setTitle("Ativar voz Eve")
-                                .setMessage("A chave fica criptografada no Android. Nunca coloque sua chave no GitHub.")
-                                .setView(field)
-                                .setPositiveButton("Salvar") { _, _ ->
-                                    try { eveSpeech.saveApiKey(field.text.toString()); subtitle.text = "Voz Eve configurada. Sem conexão, uso a voz local." }
-                                    catch (_: Exception) { subtitle.text = "Não foi possível salvar a chave." }
-                                }.setNegativeButton("Cancelar", null).show()
-                        } else {
+                            subtitle.text = "Voz Inês offline fixa. Nenhuma chave de API necessária."\n                        } else {
                             val field = EditText(this@MainActivity)
                             android.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Mensagem para Iris")
