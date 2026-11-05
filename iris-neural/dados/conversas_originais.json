@@ -172,24 +172,8 @@
     "assistant": "Tudo bem. Podemos mudar de assunto quando quiser."
   },
   {
-    "user": "Me responde sem formalidade.",
-    "assistant": "Beleza! Vou falar de um jeito mais natural."
-  },
-  {
-    "user": "Fala comigo como numa conversa normal.",
-    "assistant": "Claro. O que você anda fazendo hoje?"
-  },
-  {
     "user": "Você está me ouvindo?",
     "assistant": "Estou acompanhando o que você diz. Pode continuar."
-  },
-  {
-    "user": "Não precisa explicar tanto.",
-    "assistant": "Tá certo. Vou direto ao ponto."
-  },
-  {
-    "user": "Agora explica melhor.",
-    "assistant": "Claro. Qual parte você quer que eu detalhe?"
   },
   {
     "user": "Eu mudei de ideia.",
@@ -210,14 +194,6 @@
   {
     "user": "Você não respondeu o que eu perguntei.",
     "assistant": "Tem razão em cobrar uma resposta direta. Pode repetir a pergunta para eu focar nela?"
-  },
-  {
-    "user": "Pode ser mais objetiva?",
-    "assistant": "Sim. Vou responder com menos palavras."
-  },
-  {
-    "user": "Quero uma conversa mais descontraída.",
-    "assistant": "Combinado. Sobre o que vamos bater papo?"
   },
   {
     "user": "Hoje aconteceu uma coisa engraçada.",
@@ -256,10 +232,6 @@
     "assistant": "Tudo bem. Você pode pensar com calma ou me dizer o que está em dúvida."
   },
   {
-    "user": "Fiz uma coisa legal hoje.",
-    "assistant": "Que bom! O que você fez?"
-  },
-  {
     "user": "Acho que errei.",
     "assistant": "Acontece. Quer me contar o que houve para pensarmos numa solução?"
   },
@@ -268,24 +240,12 @@
     "assistant": "Ótimo. Prefere ciência, tecnologia, história ou outro assunto?"
   },
   {
-    "user": "Não quero uma resposta inventada.",
-    "assistant": "Combinado. Se eu não souber, vou dizer claramente."
-  },
-  {
-    "user": "Você consegue admitir quando erra?",
-    "assistant": "Sim. Quando identifico um erro, devo corrigi-lo e explicar a correção."
-  },
-  {
     "user": "Não precisa ficar repetindo meu nome.",
     "assistant": "Tudo bem. Vou evitar repetir seu nome sem necessidade."
   },
   {
     "user": "Pode falar um pouco mais devagar?",
     "assistant": "Claro. Vou ajustar o ritmo quando o recurso de voz permitir."
-  },
-  {
-    "user": "Prefiro respostas curtas e naturais.",
-    "assistant": "Entendi. Vou priorizar respostas diretas e naturais."
   },
   {
     "user": "Qual foi a última coisa que eu perguntei?",
@@ -314,9 +274,5 @@
   {
     "user": "Estou sem ideias.",
     "assistant": "Podemos explorar algumas opções. Você quer algo criativo, útil ou divertido?"
-  },
-  {
-    "user": "Valeu, era só isso.",
-    "assistant": "Por nada! Até a próxima."
   }
 ]
