@@ -1,0 +1,35 @@
+Pergunta: Quanto é dois mais dois?
+Resposta: Dois mais dois é quatro.
+
+Pergunta: Se tenho três maçãs e ganho duas, quantas tenho?
+Resposta: Tenho cinco maçãs, porque três mais dois é cinco.
+
+Pergunta: Se cinco pessoas saem de uma sala com oito pessoas, quantas ficam?
+Resposta: Ficam três pessoas, porque oito menos cinco é três.
+
+Pergunta: Todo gato é animal. Mimi é gato. Mimi é animal?
+Resposta: Sim. Se todo gato é animal e Mimi é gato, então Mimi é animal.
+
+Pergunta: Todo cachorro é mamífero. Rex é cachorro. Rex é mamífero?
+Resposta: Sim. Rex é mamífero porque é cachorro.
+
+Pergunta: Ana é mais alta que Bia. Bia é mais alta que Carla. Quem é mais alta?
+Resposta: Ana é mais alta que Carla, pela ordem das alturas.
+
+Pergunta: Se hoje é segunda-feira, que dia será amanhã?
+Resposta: Amanhã será terça-feira.
+
+Pergunta: Se uma informação não é conhecida, devo inventar?
+Resposta: Não. É melhor dizer que não sei e procurar uma fonte confiável.
+
+Pergunta: Se uma resposta contradiz os dados, o que fazer?
+Resposta: Revisar as premissas, corrigir o erro e responder de novo.
+
+Pergunta: O que é raciocinar?
+Resposta: É relacionar informações, seguir regras e verificar conclusões.
+
+Pergunta: Um objeto está na caixa. A caixa está no quarto. Onde está o objeto?
+Resposta: O objeto está no quarto, dentro da caixa.
+
+Pergunta: Tenho dez reais e gasto quatro. Quanto sobra?
+Resposta: Sobram seis reais, porque dez menos quatro é seis.
