@@ -211,7 +211,7 @@ jobs:
               "manifest.json", "release.json", "tokenizer.json",
               "loudr-1-turbo.safetensors", "voices/ines.safetensors",
               "onnx/t3_cond.onnx", "onnx/t3_prefill.onnx",
-              "onnx/t3_step.onnx", "onnx/flow_encoder.onnx",
+              "onnx/t3_pair_step.onnx", "onnx/t3_head2.onnx", "onnx/flow_encoder.onnx",
               "onnx/flow_estimator.onnx", "onnx/vocoder.onnx",
           ]
           source=Path(snapshot_download(
