@@ -184,7 +184,14 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
             activeUntil = now + 50_000
             cleaned
         } else return
-        if (command.isBlank()) { speak(fillers.attention(),"iris-ready"); return }
+        if (command.isBlank()) {
+            // A palavra de ativacao nao e uma pergunta. Permanecer ouvindo o
+            // comando seguinte, sem reproduzir uma fala que bloqueie o microfone.
+            activeUntil = SystemClock.elapsedRealtime() + 50_000
+            sendBroadcast(Intent("com.iris.assistant.VOICE_REPLY")
+                .setPackage(packageName).putExtra("answer","Ouvindo..."))
+            return
+        }
         if (isStopCommand(command)) {
             responseSerial++
             tts?.stop()
