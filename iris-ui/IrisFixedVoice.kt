@@ -7,13 +7,13 @@ import java.util.Locale
 /**
  * Single fixed Iris voice policy. No voice picker.
  *
- * Online target: ElevenLabs Fernanda (fixed voice ID).
+ * Online target: xAI Eve (fixed voice ID).
  * Offline fallback: Android pt-BR until a local neural voice is integrated.
  * Never bundle API secrets in the APK.
  */
 object IrisFixedVoice {
-    const val onlineProvider = "elevenlabs"
-    const val onlineVoiceId = "KHmfNHtEjHhLK9eER20w"
+    const val onlineProvider = "xai"
+    const val onlineVoiceId = "eve"
     val language: Locale = Locale("pt", "BR")
     const val speechRate = 0.94f
     const val speechPitch = 1.04f
