@@ -19,7 +19,6 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
     private val ines by lazy { IrisInesSpeech(this) }
-    private var neural: IrisNeuralCore? = null
     private var memory: IrisMemory? = null
     private var statistical: IrisStatisticalModel? = null
     private var trigram: IrisTrigramGenerator? = null
@@ -65,7 +64,6 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         if (Build.VERSION.SDK_INT >= 29) startForeground(1001,notification,android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         else startForeground(1001,notification)
         tts = TextToSpeech(this,this)
-        neural = IrisNeuralCore(this)
         memory = IrisMemory(this)
         statistical = IrisStatisticalModel(this)
         trigram = IrisTrigramGenerator(this)
@@ -257,8 +255,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
                 IrisIntent.Kind.SEARCH -> "Pergunta factual. Se não souber ou exigir dados atuais, diga que não pode confirmar. Pergunta: $command"
                 IrisIntent.Kind.CHAT -> "Converse naturalmente em português brasileiro, de forma breve, respeitando o humor $mood. Assunto: $topic. Mensagem: $command"
             }
-            val answer = try { neural?.generateOrNull(prompt) } catch (_: Exception) { null }
-            // Qwen continua principal; trigramas atuam como alternativa local para conversa.
+            val answer: String? = null
             val local = if (answer.isNullOrBlank() && intent == IrisIntent.Kind.CHAT) {
                 val moodKey = when (mood.lowercase(Locale.ROOT)) {
                     "neg", "negativo", "triste", "raiva" -> "neg"
@@ -372,7 +369,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         tts?.shutdown()
         soundscape.close()
         releaseAudioFocus()
-        neural?.close()
+
         super.onDestroy()
     }
 }
