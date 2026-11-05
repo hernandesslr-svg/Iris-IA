@@ -126,8 +126,10 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
                     }.show()
             }
         }
-        top.addView(settings,LinearLayout.LayoutParams(64,64))
-        column.addView(top,LinearLayout.LayoutParams(-1,64))
+        root.addView(settings,android.widget.FrameLayout.LayoutParams(64,64,Gravity.BOTTOM or Gravity.END).apply {
+            bottomMargin = 92
+            rightMargin = 22
+        })
         hud = IrisHudView(this).apply {
             contentDescription = "Núcleo falante Iris. Toque para falar"
             setOnClickListener { startVoiceService(); subtitle.text = "Diga Iris para começar." }
@@ -142,7 +144,11 @@ new=r'''    private val inesSpeech by lazy { IrisInesSpeech(this) }
             setPadding(12,16,12,16)
             maxLines = 5
         }
-        column.addView(subtitle,LinearLayout.LayoutParams(-1,160))
+        root.addView(subtitle,android.widget.FrameLayout.LayoutParams(-1,120,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+            bottomMargin = 205
+            leftMargin = 18
+            rightMargin = 18
+        })
         entry = EditText(this)
         setContentView(root)
         val voiceFilter = android.content.IntentFilter("com.iris.assistant.VOICE_REPLY")
