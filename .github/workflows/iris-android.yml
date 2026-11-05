@@ -301,9 +301,9 @@ jobs:
           shutil.copy2('iris-ui/iris_icon.png',dest)
           manifest=base/'AndroidManifest.xml'
           content=manifest.read_text()
-          content,n=re.subn(r'(<application\\b[^>]*?)\\sandroid:icon="[^"]*"',r'\\1 android:icon="@drawable/iris_launcher"',content,count=1)
+          content,n=re.subn(r'(<application\b[^>]*?)\sandroid:icon="[^"]*"',r'\1 android:icon="@drawable/iris_launcher"',content,count=1)
           if not n:
-              content,n=re.subn(r'<application\\b',r'<application android:icon="@drawable/iris_launcher"',content,count=1)
+              content,n=re.subn(r'<application\b',r'<application android:icon="@drawable/iris_launcher"',content,count=1)
           if not n: raise RuntimeError('Elemento application nao encontrado')
           manifest.write_text(content)
           print('Icone oficial IRIS aplicado:',dest.stat().st_size,'bytes')
