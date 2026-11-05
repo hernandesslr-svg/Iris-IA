@@ -18,6 +18,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
+    private val eve by lazy { IrisEveSpeech(this) }
     private var neural: IrisNeuralCore? = null
     private var memory: IrisMemory? = null
     private var statistical: IrisStatisticalModel? = null
@@ -290,7 +291,10 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         } else if (!hearing) handler.postDelayed({ if (running && talking) listen() }, 400)
         // Optional nonverbal feedback, suppressed during microphone capture.
         soundscape.cue("ready", listening = hearing, speaking = false)
-        tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
+        if (!eve.speak(safeText,
+            onFallback = { tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id) },
+            onDone = { talking=false; releaseAudioFocus(); audioGate.setGuard(false); activityState.change(IrisActivity.IDLE); scheduleRetry() }
+        )) tts?.speak(safeText,TextToSpeech.QUEUE_FLUSH,null,id)
     }
     override fun onError(error:Int) { diagnostics.recordError(error); if (!talking) scheduleRetry() }
     override fun onReadyForSpeech(params:Bundle?) {}
@@ -340,6 +344,7 @@ class IrisVoiceService : Service(), RecognitionListener, TextToSpeech.OnInitList
         recognizer?.cancel()
         recognizer?.destroy()
         micCoordinator.release("speech")
+        eve.stop()
         tts?.shutdown()
         soundscape.close()
         releaseAudioFocus()
