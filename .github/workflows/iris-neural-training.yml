@@ -35,6 +35,10 @@ jobs:
           else
             echo "No prior checkpoint; starting from scratch"
           fi
+      - name: Evaluate checkpoint with diverse questions
+        run: |
+          cd iris-neural
+          python evaluate_conversation.py
       - name: Continue training toward 100000 steps
         run: |
           cd iris-neural
