@@ -58,12 +58,6 @@ jobs:
               for path in base.rglob(pattern):
                   if path.is_dir(): shutil.rmtree(path)
                   elif path.is_file(): path.unlink()
-          # A origem ZIP pode conter campos e chamadas antigas na Activity.
-          activity=base/"java/com/iris/assistant/MainActivity.kt"
-          if activity.exists():
-              import re
-              source=activity.read_text()
-              source=re.sub(r'^.*(?:private\s+lateinit\s+var\s+neural\s*:|private\s+val\s+neural\s*=|private\s+var\s+neural\s*:).*
           PY
       - name: Instalar MediaPipe e modelo de maos offline
         run: |
