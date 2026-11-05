@@ -1,6 +1,6 @@
 use std::ffi::{c_char, CStr};
 use std::sync::Mutex;
-use loudkit::engine::{Engine, Options};
+use crate::engine::{Engine, Options};
 
 static ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 
