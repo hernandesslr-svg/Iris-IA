@@ -8,10 +8,10 @@ Desenvolver um modelo causal Transformer próprio da IRIS, com aproximadamente 1
 - Embedding: 368 dimensões
 - 6 camadas Transformer causais
 - 8 cabeças de atenção
-- Feed-forward: 1472 dimensões
+- Feed-forward: 1479 dimensões
 - Contexto máximo inicial: 256 tokens
 - Embedding e projeção de saída com pesos compartilhados
-- Contagem calculada da arquitetura padrão: 9.968.384 parâmetros
+- Contagem calculada da arquitetura padrão: 9.999.338 parâmetros
 
 A arquitetura está definida em `iris-neural/model.py`. A configuração pode evoluir após os testes de treinamento e desempenho.
 
