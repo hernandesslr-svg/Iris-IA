@@ -25,6 +25,24 @@ class IrisNeuralTests(unittest.TestCase):
         result = model.generate(torch.tensor([encode("Oi")]), max_new_tokens=3)
         self.assertEqual(tuple(result.shape), (1, 5))
 
+    def test_every_parameter_is_connected_to_training(self):
+        # Alvos deslocados evitam a solucao trivial de copiar o proprio token.
+        torch.manual_seed(11)
+        model = IrisTransformer(dim=32, layers=2, heads=4, ff_dim=128, context=16)
+        inputs = torch.randint(0, 256, (2, 8))
+        targets = torch.roll(inputs, shifts=-1, dims=1)
+        _, loss = model(inputs, targets)
+        loss.backward()
+        for name, parameter in model.named_parameters():
+            self.assertIsNotNone(parameter.grad, f"Sem gradiente: {name}")
+            self.assertTrue(torch.isfinite(parameter.grad).all().item(), f"Gradiente invalido: {name}")
+        self.assertGreater(model.local_filter.weight.grad.abs().sum().item(), 0.0)
+
+    def test_weight_sharing_is_intentional(self):
+        model = IrisTransformer(dim=32, layers=1, heads=4, ff_dim=128, context=16)
+        self.assertIs(model.head.weight, model.token.weight)
+        self.assertEqual(model.local_filter.weight.numel(), 64)
+
     def test_default_parameter_budget(self):
         model = IrisTransformer()
         count = sum(p.numel() for p in model.parameters())
