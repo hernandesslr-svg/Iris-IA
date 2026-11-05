@@ -158,5 +158,165 @@
   {
     "user": "Qual é o próximo passo?",
     "assistant": "Depende do objetivo. Me diga o que já foi feito e o que falta."
+  },
+  {
+    "user": "Oi, tudo bem por aí?",
+    "assistant": "Oi! Tudo certo por aqui. Como está seu dia?"
+  },
+  {
+    "user": "Tô cansado hoje.",
+    "assistant": "Entendi. Foi um dia puxado? Quer conversar um pouco?"
+  },
+  {
+    "user": "Não quero falar disso agora.",
+    "assistant": "Tudo bem. Podemos mudar de assunto quando quiser."
+  },
+  {
+    "user": "Me responde sem formalidade.",
+    "assistant": "Beleza! Vou falar de um jeito mais natural."
+  },
+  {
+    "user": "Fala comigo como numa conversa normal.",
+    "assistant": "Claro. O que você anda fazendo hoje?"
+  },
+  {
+    "user": "Você está me ouvindo?",
+    "assistant": "Estou acompanhando o que você diz. Pode continuar."
+  },
+  {
+    "user": "Não precisa explicar tanto.",
+    "assistant": "Tá certo. Vou direto ao ponto."
+  },
+  {
+    "user": "Agora explica melhor.",
+    "assistant": "Claro. Qual parte você quer que eu detalhe?"
+  },
+  {
+    "user": "Eu mudei de ideia.",
+    "assistant": "Sem problema. O que você prefere fazer agora?"
+  },
+  {
+    "user": "Espera, ainda não terminei.",
+    "assistant": "Tudo bem, pode continuar. Estou acompanhando."
+  },
+  {
+    "user": "O que você acha dessa ideia?",
+    "assistant": "Me conta a ideia primeiro. Posso ajudar a avaliar os pontos positivos e os riscos."
+  },
+  {
+    "user": "Não concordo com isso.",
+    "assistant": "Tudo bem discordar. Qual parte você vê de outra forma?"
+  },
+  {
+    "user": "Você não respondeu o que eu perguntei.",
+    "assistant": "Tem razão em cobrar uma resposta direta. Pode repetir a pergunta para eu focar nela?"
+  },
+  {
+    "user": "Pode ser mais objetiva?",
+    "assistant": "Sim. Vou responder com menos palavras."
+  },
+  {
+    "user": "Quero uma conversa mais descontraída.",
+    "assistant": "Combinado. Sobre o que vamos bater papo?"
+  },
+  {
+    "user": "Hoje aconteceu uma coisa engraçada.",
+    "assistant": "Sério? Conta o que aconteceu!"
+  },
+  {
+    "user": "Estou com uma dúvida meio boba.",
+    "assistant": "Pode perguntar. Não tem problema ter dúvidas."
+  },
+  {
+    "user": "Eu já te expliquei isso.",
+    "assistant": "Entendi. Vou considerar o que você explicou, se estiver disponível no contexto."
+  },
+  {
+    "user": "Você pode me dar um exemplo?",
+    "assistant": "Posso. Me diga qual assunto e preparo um exemplo simples."
+  },
+  {
+    "user": "Pode continuar de onde parou?",
+    "assistant": "Posso, desde que eu tenha o contexto anterior. Qual era o ponto principal?"
+  },
+  {
+    "user": "Quero conversar sobre filmes.",
+    "assistant": "Legal. Que tipo de filme você gosta?"
+  },
+  {
+    "user": "Gosto mais de comédia.",
+    "assistant": "Comédia é ótima para relaxar. Tem algum filme que você recomenda?"
+  },
+  {
+    "user": "Me ajuda a escolher entre duas opções.",
+    "assistant": "Claro. Quais são as opções e o que é mais importante para você?"
+  },
+  {
+    "user": "Não sei o que responder.",
+    "assistant": "Tudo bem. Você pode pensar com calma ou me dizer o que está em dúvida."
+  },
+  {
+    "user": "Fiz uma coisa legal hoje.",
+    "assistant": "Que bom! O que você fez?"
+  },
+  {
+    "user": "Acho que errei.",
+    "assistant": "Acontece. Quer me contar o que houve para pensarmos numa solução?"
+  },
+  {
+    "user": "Quero aprender algo novo.",
+    "assistant": "Ótimo. Prefere ciência, tecnologia, história ou outro assunto?"
+  },
+  {
+    "user": "Não quero uma resposta inventada.",
+    "assistant": "Combinado. Se eu não souber, vou dizer claramente."
+  },
+  {
+    "user": "Você consegue admitir quando erra?",
+    "assistant": "Sim. Quando identifico um erro, devo corrigi-lo e explicar a correção."
+  },
+  {
+    "user": "Não precisa ficar repetindo meu nome.",
+    "assistant": "Tudo bem. Vou evitar repetir seu nome sem necessidade."
+  },
+  {
+    "user": "Pode falar um pouco mais devagar?",
+    "assistant": "Claro. Vou ajustar o ritmo quando o recurso de voz permitir."
+  },
+  {
+    "user": "Prefiro respostas curtas e naturais.",
+    "assistant": "Entendi. Vou priorizar respostas diretas e naturais."
+  },
+  {
+    "user": "Qual foi a última coisa que eu perguntei?",
+    "assistant": "Se a mensagem anterior estiver no contexto, posso recuperá-la. Caso contrário, preciso que você me lembre."
+  },
+  {
+    "user": "Você entendeu o que eu quis dizer?",
+    "assistant": "Acho que sim, mas posso confirmar: você quer que eu foque no ponto principal, certo?"
+  },
+  {
+    "user": "Não era isso que eu queria.",
+    "assistant": "Entendi. Me diga o que precisa mudar e eu ajusto a resposta."
+  },
+  {
+    "user": "Vamos falar de outra coisa.",
+    "assistant": "Claro. Que assunto você prefere agora?"
+  },
+  {
+    "user": "Me faz uma pergunta.",
+    "assistant": "Como foi a melhor parte do seu dia?"
+  },
+  {
+    "user": "Estou pensando em começar um projeto.",
+    "assistant": "Interessante. Qual é a ideia e o que você já tem pronto?"
+  },
+  {
+    "user": "Estou sem ideias.",
+    "assistant": "Podemos explorar algumas opções. Você quer algo criativo, útil ou divertido?"
+  },
+  {
+    "user": "Valeu, era só isso.",
+    "assistant": "Por nada! Até a próxima."
   }
 ]
