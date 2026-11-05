@@ -1,9 +1,10 @@
-"""Prepara corpus de dialogos, removendo duplicatas exatas e quase identicas."""
+"""Remove duplicatas exatas e sinaliza semelhancas textuais para revisao humana."""
 import argparse
 import hashlib
 import json
 import re
 import unicodedata
+from difflib import SequenceMatcher
 from pathlib import Path
 
 
@@ -34,6 +35,15 @@ def prepare(source, destination):
                 raise ValueError("Pergunta repetida com respostas conflitantes: " + user)
             continue
         unique[key] = (pair, user, assistant)
+    similar = []
+    entries = list(unique.values())
+    for i, (_, first, _) in enumerate(entries):
+        for _, second, _ in entries[i + 1:]:
+            score = SequenceMatcher(None, normalized(first), normalized(second)).ratio()
+            if score >= 0.82:
+                similar.append({"a": first, "b": second, "score": round(score, 3)})
+    if similar:
+        print(json.dumps({"aviso": "Perguntas muito semelhantes; revisar manualmente", "pares": similar}, ensure_ascii=False))
     output = "".join("Usuário: " + user + "\nIRIS: " + answer + "\n\n" for _, user, answer in unique.values())
     Path(destination).parent.mkdir(parents=True, exist_ok=True)
     Path(destination).write_text(output, encoding="utf-8")
