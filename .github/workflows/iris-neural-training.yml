@@ -5,6 +5,8 @@ on:
       - 'iris-neural/**'
       - '.github/workflows/iris-neural-training.yml'
   workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
 permissions:
   contents: read
   actions: write
@@ -56,8 +58,19 @@ jobs:
           step=$(python -c "import json;print(json.load(open('iris-neural/artifacts/metrics.json'))['steps'])")
           echo "Training reached step $step / 1000000"
           if [ "$step" -lt 1000000 ]; then
-            gh workflow run iris-neural-training.yml --ref "${{ github.ref_name }}"
-            echo "Next training run dispatched"
+            dispatched=false
+            for attempt in 1 2 3 4 5; do
+              if gh workflow run iris-neural-training.yml --ref "${{ github.ref_name }}"; then
+                echo "Next training run dispatched on attempt $attempt"
+                dispatched=true
+                break
+              fi
+              echo "Dispatch attempt $attempt failed; retrying..."
+              sleep $((attempt * 15))
+            done
+            if [ "$dispatched" != "true" ]; then
+              echo "::warning::GitHub dispatch unavailable after retries. Scheduled recovery will resume training."
+            fi
           else
             echo "1000000 steps reached; automatic continuation stopped"
           fi
