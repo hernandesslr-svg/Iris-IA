@@ -39,25 +39,25 @@ jobs:
         run: |
           cd iris-neural
           python evaluate_conversation.py
-      - name: Continue training toward 100000 steps
+      - name: Continue training toward 1000000 steps
         run: |
           cd iris-neural
-          python train_full_conversation.py --steps 100000 --minutes 20 --context 64 --batch-size 4 --output-dir artifacts
+          python train_full_conversation.py --steps 1000000 --minutes 20 --context 64 --batch-size 4 --output-dir artifacts
       - name: Upload checkpoint
         uses: actions/upload-artifact@v4
         with:
           name: iris-neural-training
           path: iris-neural/artifacts/
           retention-days: 30
-      - name: Schedule next run until 100000
+      - name: Schedule next run until 1000000
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           step=$(python -c "import json;print(json.load(open('iris-neural/artifacts/metrics.json'))['steps'])")
-          echo "Training reached step $step / 100000"
-          if [ "$step" -lt 100000 ]; then
+          echo "Training reached step $step / 1000000"
+          if [ "$step" -lt 1000000 ]; then
             gh workflow run iris-neural-training.yml --ref "${{ github.ref_name }}"
             echo "Next training run dispatched"
           else
-            echo "100000 steps reached; automatic continuation stopped"
+            echo "1000000 steps reached; automatic continuation stopped"
           fi
