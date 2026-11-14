@@ -21,8 +21,10 @@ jobs:
           java-version: '17'
       - name: Android SDK
         uses: android-actions/setup-android@v3
-      - name: Instalar SDK 35
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Instalar SDK e aceitar licenças
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -32,11 +34,12 @@ jobs:
           set -o pipefail
           gradle :app:assembleDebug --no-daemon --stacktrace --info 2>&1 | tee build.log
       - name: Publicar log de compilação
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Iris-Galeria-build-log
           path: iris-galeria/android/build.log
+          if-no-files-found: warn
           retention-days: 30
       - name: Conferir arquivo APK
         run: test -s app/build/outputs/apk/debug/app-debug.apk
