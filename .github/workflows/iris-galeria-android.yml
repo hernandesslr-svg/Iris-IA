@@ -21,10 +21,11 @@ jobs:
           java-version: '17'
       - name: Android SDK
         uses: android-actions/setup-android@v3
-      - name: Instalar SDK e aceitar licenças
+      - name: Preparar Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sdkmanager --list_installed
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
