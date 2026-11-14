@@ -1,16 +1,15 @@
 name: Compilar Iris Galeria APK
 on:
-  workflow_dispatch:
   push:
-    branches: [iris-galeria]
+    branches:
+      - iris-galeria
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: iris-galeria/android
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,22 +18,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
       - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Instalar componentes Android
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-          sdkmanager --list_installed
-      - name: Configurar Gradle
+      - name: Preparar Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Diagnosticar ambiente
+        run: |
+          java -version
+          gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la iris-galeria/android
       - name: Compilar APK
+        working-directory: iris-galeria/android
         run: |
           set -o pipefail
-          gradle :app:assembleDebug --no-daemon --stacktrace --info 2>&1 | tee build.log
-      - name: Publicar log de compilação
+          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain 2>&1 | tee build.log
+      - name: Publicar diagnostico
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -42,11 +46,12 @@ jobs:
           path: iris-galeria/android/build.log
           if-no-files-found: warn
           retention-days: 30
-      - name: Conferir arquivo APK
-        run: test -s app/build/outputs/apk/debug/app-debug.apk
+      - name: Verificar APK
+        run: test -s iris-galeria/android/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: Iris-Galeria-debug-apk
           path: iris-galeria/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 30
