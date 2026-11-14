@@ -3,9 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: [iris-galeria]
-    paths:
-      - 'iris-galeria/android/**'
-      - '.github/workflows/iris-galeria-android.yml'
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,7 +28,9 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Compilar APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Conferir arquivo APK
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
