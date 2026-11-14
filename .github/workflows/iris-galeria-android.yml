@@ -28,7 +28,16 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Compilar APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --no-daemon --stacktrace --info 2>&1 | tee build.log
+      - name: Publicar log de compilação
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Iris-Galeria-build-log
+          path: iris-galeria/android/build.log
+          retention-days: 30
       - name: Conferir arquivo APK
         run: test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK
