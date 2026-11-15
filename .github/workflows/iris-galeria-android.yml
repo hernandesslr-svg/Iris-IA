@@ -23,6 +23,7 @@ jobs:
       - name: Instalar componentes Android
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          test -d "$ANDROID_HOME/platforms/android-35"
       - name: Preparar Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -37,7 +38,7 @@ jobs:
         working-directory: iris-galeria/android
         run: |
           set -o pipefail
-          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain 2>&1 | tee build.log
+          gradle --no-daemon --stacktrace --console=plain --warning-mode all :app:assembleDebug 2>&1 | tee build.log
       - name: Publicar diagnostico
         if: always()
         uses: actions/upload-artifact@v4
