@@ -121,22 +121,34 @@ public class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    /** Barras do celular (de cima e de baixo) no grafite da galeria, com ícones claros. */
+    /** Barras do celular (de cima e de baixo) combinando com o tema da galeria. */
+    private void darkBars() { applyBars(false); }
+
+    public void setBars(final boolean light) {
+        runOnUiThread(new Runnable() { @Override public void run() { applyBars(light); } });
+    }
+
     @SuppressWarnings("deprecation")
-    private void darkBars() {
+    private void applyBars(boolean light) {
         try {
             Window w = getWindow();
-            w.setStatusBarColor(0xFF232323);
-            w.setNavigationBarColor(0xFF141414);
+            w.setStatusBarColor(light ? 0xFFFFFFFF : 0xFF232323);
+            w.setNavigationBarColor(light ? 0xFFF4F4F7 : 0xFF141414);
             if (Build.VERSION.SDK_INT >= 29) w.setNavigationBarContrastEnforced(false);
             if (Build.VERSION.SDK_INT >= 30) {
                 WindowInsetsController c = w.getInsetsController();
-                if (c != null) c.setSystemBarsAppearance(0,
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+                int m = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                if (c != null) c.setSystemBarsAppearance(light ? m : 0, m);
             } else {
                 View d = w.getDecorView();
-                int f = d.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                if (Build.VERSION.SDK_INT >= 26) f &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                int f = d.getSystemUiVisibility();
+                if (light) {
+                    f |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    if (Build.VERSION.SDK_INT >= 26) f |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                } else {
+                    f &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    if (Build.VERSION.SDK_INT >= 26) f &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
                 d.setSystemUiVisibility(f);
             }
         } catch (Exception ignored) {

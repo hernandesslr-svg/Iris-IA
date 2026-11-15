@@ -52,6 +52,12 @@ public class IrisBridge {
 
     /* ------------------------------ fotos ------------------------------ */
 
+    /** Troca as cores das barras do celular entre tema claro e escuro. */
+    @JavascriptInterface
+    public void setBars(boolean light) {
+        activity.setBars(light);
+    }
+
     /** Devolve o conteúdo de um arquivo de assets em Base64, ou "" se falhar. */
     @JavascriptInterface
     public String readAsset(String path) {
