@@ -72,6 +72,18 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 .tools{padding:10px 14px 16px;background:var(--s1);flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .tools .row button{padding:9px 12px;font-size:.9rem}.tools button.on{background:var(--tx);color:#141414}
 .tools label{display:flex;align-items:center;gap:10px;margin:6px 0;color:#ddd;font-size:.95rem}.tools label b{width:84px;font-weight:600}.tools input[type=range]{flex:1;accent-color:#f2f2f2}
+/* lixeira e informações */
+#trashNote{display:none;margin:6px 14px 0;font-size:.85rem;color:var(--mut)}body.intrash #trashNote{display:block}
+.tile.trashc{background:#2a1f22;border:1.5px solid #5a3a42;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#ff9fb0;aspect-ratio:1/1;cursor:pointer;font-weight:600}
+.tile.trashc small{color:#c99aa4;font-weight:400;font-size:.75rem}
+.left{position:absolute;left:7px;bottom:7px;font-size:.72rem;color:#fff;background:#000b;padding:2px 7px;border-radius:7px;pointer-events:none}
+#info{position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--s1);border-radius:22px 22px 0 0;padding:10px 18px calc(16px + env(safe-area-inset-bottom));font-size:.92rem}
+#info .grab{width:40px;height:4px;border-radius:2px;background:#555;margin:0 auto 12px}
+#info .r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:.5px solid #333}#info .r:last-child{border:0}
+#info .r>span:first-child{color:var(--mut);flex:none}#info .ed{display:flex;align-items:center;gap:6px;min-width:0}#info .ed b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:48vw}
+#info .iconb{background:transparent;color:#bdbdbd;padding:4px;border-radius:8px;display:flex}
+#iNameIn{flex:1;padding:10px 14px;border-radius:12px}
+dialog.showinfo #stage{margin-bottom:var(--infoH,250px)}
 /* seleção */
 .chk{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#0006;display:none;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:#fff}
 body.sel .chk{display:flex}.tile.sel{outline:3px solid #fff;outline-offset:-3px}.tile.sel .chk{background:#fff;border-color:#fff;color:#141414}.tile.sel img{opacity:.75}
@@ -99,7 +111,7 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 #lock{background:var(--bg)}#lock[open]{align-items:center;justify-content:center;text-align:center;padding:24px}
 #lock h1{margin:12px 0 6px;font-weight:600}#lock button{margin-top:14px;min-width:200px}#lock .lic{display:flex;justify-content:center;color:var(--tx)}
 </style></head><body>
-<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1>Galeria privada</h1><span class="sp"></span><button id="colsBtn" class="ibtn" aria-label="Colunas da grade"><span data-ic="grid" data-s="20"></span></button><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
+<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1 id="ttl">Galeria privada</h1><span class="sp"></span><button id="trashEmpty" class="ibtn" hidden style="width:auto;padding:0 16px;border-radius:999px;font-size:.88rem;font-weight:600">Esvaziar</button><button id="colsBtn" class="ibtn" aria-label="Colunas da grade"><span data-ic="grid" data-s="20"></span></button><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
 <main class="g">
 <div id="banner2" class="bannerx" hidden><span id="banner2Text"></span><button id="banner2Btn">Baixar</button></div>
 <div id="banner" hidden><span id="bannerText"></span><button id="bannerBtn">Atualizar agora</button></div>
@@ -107,6 +119,7 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 <input id="fVideos" type="file" accept="video/*" multiple>
 <input id="fCam" type="file" accept="image/*" capture="environment">
 <input id="fZip" type="file" accept=".zip,application/zip,application/x-zip-compressed">
+<div id="trashNote" hidden>Os itens apagados ficam aqui por 30 dias e depois somem sozinhos. Segure um item para restaurar ou apagar de vez.</div>
 <div id="gallery"></div>
 <div id="empty" class="empty" hidden><h2 id="emptyT"></h2><p id="emptyP"></p></div>
 </main>
@@ -124,7 +137,7 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 </div>
 
 <div id="selTop" hidden><button id="selCancel" class="icon" aria-label="Cancelar seleção"><span data-ic="x" data-s="24"></span></button><span id="selCount"></span><span style="width:48px"></span></div>
-<div id="selBar" hidden><button id="bEdit"><span data-ic="pencil" data-s="23"></span>Editar</button><button id="bShare"><span data-ic="share" data-s="23"></span>Enviar</button><button id="bFav"><span data-ic="star" data-s="23"></span>Favoritar</button><button id="bSave"><span data-ic="download" data-s="23"></span>Salvar</button><button id="bAlb"><span data-ic="folder" data-s="23"></span>Álbum</button><button id="bDel" class="danger"><span data-ic="trash" data-s="23"></span>Excluir</button></div>
+<div id="selBar" hidden><button id="bEdit"><span data-ic="pencil" data-s="23"></span>Editar</button><button id="bShare"><span data-ic="share" data-s="23"></span>Enviar</button><button id="bFav"><span data-ic="star" data-s="23"></span>Favoritar</button><button id="bSave"><span data-ic="download" data-s="23"></span>Salvar</button><button id="bAlb"><span data-ic="folder" data-s="23"></span>Álbum</button><button id="bRestore"><span data-ic="restore" data-s="23"></span>Restaurar</button><button id="bDel" class="danger"><span data-ic="trash" data-s="23"></span><span id="bDelT">Excluir</span></button></div>
 
 <div id="selConfirm" class="ov" hidden><div><h3 id="selConfirmT" style="margin:0 0 8px"></h3><p id="selConfirmP" style="margin:0"></p><div class="row"><button id="scNo" class="secondary">Cancelar</button><button id="scYes" class="danger"></button></div></div></div>
 <div id="albSheet" class="ov" hidden><div><h3 style="margin:0">Colocar em álbum</h3><div id="albList"></div><div class="row"><button id="asNo" class="secondary">Cancelar</button></div></div></div>
@@ -134,7 +147,14 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
   <button id="more" aria-label="Mais opções"><span data-ic="dots" data-s="24"></span></button>
   <div id="menu" hidden><button data-a="edit"><span data-ic="pencil"></span>Editar</button><button data-a="fav"></button><button data-a="share"><span data-ic="share"></span>Compartilhar</button><button data-a="save"><span data-ic="download"></span>Salvar no celular</button><button data-a="del" class="danger"><span data-ic="trash"></span>Apagar</button></div>
   <div id="stage"><img id="full" alt=""><video id="vid" controls playsinline hidden></video></div>
-  <div id="confirm" hidden><div><h3 id="confirmT" style="margin:0 0 8px">Apagar esta foto?</h3><p style="margin:0">Ela some da galeria.</p><div class="row"><button id="cNo" class="secondary">Cancelar</button><button id="cYes" class="danger">Apagar</button></div></div></div>
+  <div id="info" hidden><div class="grab"></div><h3 style="margin:0 0 4px;font-size:1.05rem">Informações</h3>
+    <div class="r"><span>Nome</span><span class="ed"><b id="iNameV"></b><button id="iEdit" class="iconb" aria-label="Renomear"><span data-ic="pencil" data-s="17"></span></button></span></div>
+    <div class="r" id="iRen" hidden><input id="iNameIn" type="search" maxlength="80"><button id="iNameOk">OK</button></div>
+    <div class="r"><span>Adicionada em</span><span id="iDate"></span></div>
+    <div class="r"><span>Tamanho</span><span id="iSize"></span></div>
+    <div class="r"><span>Álbuns</span><span id="iAlb" style="text-align:right"></span></div>
+  </div>
+  <div id="confirm" hidden><div><h3 id="confirmT" style="margin:0 0 8px">Apagar esta foto?</h3><p id="confirmP" style="margin:0">Vai para a lixeira por 30 dias.</p><div class="row"><button id="cNo" class="secondary">Cancelar</button><button id="cYes" class="danger">Apagar</button></div></div></div>
 </dialog>
 
 <dialog id="settings" class="full">
@@ -194,6 +214,7 @@ const ICONS={
   dots:'<circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/>',
   grid:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
+  restore:'<path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>'
 };
 function svg(n,s){s=s||22;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[n]+'</svg>'}
@@ -208,8 +229,14 @@ let hiddenSet=new Set();
 try{hiddenSet=new Set(JSON.parse(localStorage.getItem('iris-hidden')||'[]'))}catch(e){}
 function saveHidden(){try{localStorage.setItem('iris-hidden',JSON.stringify([...hiddenSet]))}catch(e){}}
 let albums=[];try{albums=JSON.parse(localStorage.getItem('iris-albums')||'[]')||[]}catch(e){}
+let trash={};try{trash=JSON.parse(localStorage.getItem('iris-trash')||'{}')||{}}catch(e){}
+function saveTrash(){try{localStorage.setItem('iris-trash',JSON.stringify(trash))}catch(e){}}
+let names={};try{names=JSON.parse(localStorage.getItem('iris-names')||'{}')||{}}catch(e){}
+function saveNames(){try{localStorage.setItem('iris-names',JSON.stringify(names))}catch(e){}}
+const TRASH_DAYS=30,DAY=86400000;
+const inTrash=()=>!!(albumOpen&&albumOpen.trash);
 function saveAlbums(){try{localStorage.setItem('iris-albums',JSON.stringify(albums))}catch(e){}}
-const bundled=(window.IRIS_FOTOS||[]).map(it=>({key:'b:'+it.file,kind:'b',name:it.name,file:it.file,wide:it.w&&it.h?it.w>it.h*1.15:undefined}));
+const bundled=(window.IRIS_FOTOS||[]).map(it=>({key:'b:'+it.file,kind:'b',name:it.name,origName:it.name,file:it.file,wide:it.w&&it.h?it.w>it.h*1.15:undefined}));
 const norm=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const CATS=[['Colagens',/colagem|ficha|folha|montagem|grade|composic|poses|expressoes|estudo|criacao de personagem|pixel|mmorpg/],['Hinata',/hinata/],['Tsunade',/tsunade/],['Tenten',/tenten/],['Fadas e elfas',/fada|elfa|elfic/],['Súcubos e demônias',/sucubo|demon/],['Lobas e raposas',/loba|lobo|raposa|kitsune/],['Vaquinhas',/vaca|vaqueira|vaquinha/],['Gamers',/gamer/],['Cyber',/androide|ciborgue|cyber|futurista|neon|robo/],['Góticas',/gotic|dama/],['Guerreiras',/guerreira|valquiria|sacerdotisa|ninja|heroi/],['Anjos e realeza',/anjo|celestial|rainha|real\b|princesa/]];
 function catOf(name){const n=norm(name);for(const [l,r] of CATS)if(r.test(n))return l;return 'Outras'}
@@ -218,11 +245,14 @@ function saveFavs(){try{localStorage.setItem('iris-favs',JSON.stringify([...favs
 const sel=new Set();let selMode=false;
 const isVideo=it=>!!it&&it.media==='video';
 function userItems(){return userPhotos.slice().reverse().sort((a,b)=>(b.lastModified||0)-(a.lastModified||0)).map(p=>({key:'u:'+p.id,kind:'u',id:p.id,name:p.name,blob:p.blob,onlineKey:p.onlineKey,media:p.media,poster:p.poster,duration:p.duration,added:p.lastModified}))}
-function allItems(){return userItems().concat(bundled.filter(b=>!hiddenSet.has(b.key)))}
+function applyNames(arr){arr.forEach(it=>{if(it.kind==='b')it.name=names[it.key]||it.origName;else if(names[it.key])it.name=names[it.key]});return arr}
+function allItems(){return applyNames(userItems().filter(it=>!trash[it.key]).concat(bundled.filter(b=>!hiddenSet.has(b.key)&&!trash[b.key])))}
+function trashItems(){return applyNames(userItems().filter(it=>trash[it.key]).concat(bundled.filter(b=>!hiddenSet.has(b.key)&&trash[b.key]))).sort((a,b)=>trash[b.key]-trash[a.key])}
+function daysLeft(it){return Math.max(0,TRASH_DAYS-Math.floor((Date.now()-trash[it.key])/DAY))}
 function srcOf(it){if(it.kind==='b')return 'fotos/'+it.file;let u=urls.get(it.key);if(!u){u=URL.createObjectURL(it.blob);urls.set(it.key,u)}return u}
 function thumbOf(it){if(!isVideo(it))return srcOf(it);if(!it.poster)return '';const k=it.key+':p';let u=urls.get(k);if(!u){u=URL.createObjectURL(it.poster);urls.set(k,u)}return u}
 function fmtDur(s){s=Math.round(s||0);const m=Math.floor(s/60),r=s%60;return m+':'+String(r).padStart(2,'0')}
-function albumName(a){return a.auto?(a.auto==='__fav'?'Favoritas':a.auto):((albums.find(x=>x.id===a.id)||{}).name||'Álbum')}
+function albumName(a){if(a.trash)return 'Lixeira';return a.auto?(a.auto==='__fav'?'Favoritas':a.auto):((albums.find(x=>x.id===a.id)||{}).name||'Álbum')}
 function albumItems(a,photos){
   if(a.auto==='__fav')return photos.filter(it=>favs.has(it.key));
   if(a.auto)return photos.filter(it=>catOf(it.name)===a.auto);
@@ -230,6 +260,7 @@ function albumItems(a,photos){
   const set=new Set(al.keys);return photos.filter(it=>set.has(it.key));
 }
 function baseItems(){
+  if(inTrash())return trashItems();
   const all=allItems();
   if(tab==='videos')return all.filter(isVideo);
   const photos=all.filter(it=>!isVideo(it));
@@ -237,7 +268,8 @@ function baseItems(){
 }
 function info(){
   let t;
-  if(tab==='albums'&&!albumOpen)t=albumCount+(albumCount===1?' álbum':' álbuns');
+  if(inTrash())t=list.length+(list.length===1?' item':' itens');
+  else if(tab==='albums'&&!albumOpen)t=albumCount+(albumCount===1?' álbum':' álbuns');
   else if(tab==='videos')t=list.length+(list.length===1?' vídeo':' vídeos');
   else{t=list.length+(list.length===1?' foto':' fotos');if(albumOpen)t=albumName(albumOpen)+' · '+t}
   $('#count').textContent=t;
@@ -268,6 +300,7 @@ function renderAlbums(g,all,q){
   albumCount=shown.length;
   if(!q){
     const nt=mkTile('newalb');nt.innerHTML=svg('folderPlus',32)+'<span>Novo álbum</span>';nt.onclick=()=>askName(n=>{createAlbum(n,[]);toast('Álbum criado')});g.append(nt);
+    const tn=trashItems().length,tc=mkTile('trashc');tc.innerHTML=svg('trash',32)+'<span>Lixeira</span><small>'+tn+(tn===1?' item':' itens')+'</small>';tc.onclick=()=>{albumOpen={trash:true};window.scrollTo(0,0);render()};g.append(tc);
   }
   shown.forEach(c=>{
     const tile=mkTile('alb'),cover=c.items[0];
@@ -288,15 +321,17 @@ function render(){
   failed=0;
   const q=norm($('#search').value.trim());
   const all=allItems();
-  for(const k of [...sel])if(!all.some(x=>x.key===k))sel.delete(k);
-  document.body.classList.toggle('inalb',!!albumOpen);
+  const pool=inTrash()?trashItems():all;
+  for(const k of [...sel])if(!pool.some(x=>x.key===k))sel.delete(k);
+  document.body.classList.toggle('inalb',!!albumOpen);document.body.classList.toggle('intrash',inTrash());
+  $('#ttl').textContent=inTrash()?'Lixeira':'Galeria privada';$('#trashEmpty').hidden=!inTrash();$('#colsBtn').hidden=inTrash();
   $('#backBtn').hidden=!albumOpen;$('#lockIc').hidden=!!albumOpen;
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   const g=$('#gallery');g.replaceChildren();g.className='';
   if(tab==='albums'&&!albumOpen){g.className='grid';list=[];renderAlbums(g,all,q);$('#empty').hidden=true;refreshSel();info();return}
   const found=baseItems().filter(it=>norm(it.name).includes(q));
   const groups=new Map();
-  found.forEach(it=>{const gi=groupOf(it);if(!groups.has(gi.k))groups.set(gi.k,{n:gi.n,items:[]});groups.get(gi.k).items.push(it)});
+  found.forEach(it=>{const gi=inTrash()?{k:'t',n:'Apagados'}:groupOf(it);if(!groups.has(gi.k))groups.set(gi.k,{n:gi.n,items:[]});groups.get(gi.k).items.push(it)});
   list=[...groups.values()].flatMap(x=>x.items);
   const buildTile=(it,i)=>{
     const vid=isVideo(it);
@@ -313,10 +348,11 @@ function render(){
     tile.addEventListener('touchend',e=>{clearTimeout(timer);if(fired)e.preventDefault()});
     tile.addEventListener('touchcancel',()=>clearTimeout(timer));
     tile.addEventListener('contextmenu',e=>e.preventDefault());
-    tile.onclick=()=>{if(fired){fired=false;return}if(selMode)toggleSel(it.key);else openViewer(i)};
+    tile.onclick=()=>{if(fired){fired=false;return}if(inTrash())toggleSel(it.key,!selMode);else if(selMode)toggleSel(it.key);else openViewer(i)};
     tile.append(img,chk);
     if(vid){const p=document.createElement('span');p.className='play';p.innerHTML=svg('play',22);tile.append(p);if(it.duration){const d=document.createElement('span');d.className='dur';d.textContent=fmtDur(it.duration);tile.append(d)}}
-    if(favs.has(it.key)){const st=document.createElement('span');st.className='star';st.textContent='★';tile.append(st)}
+    if(inTrash()){const lf=document.createElement('span');lf.className='left';const dl=daysLeft(it);lf.textContent=dl+(dl===1?' dia':' dias');tile.append(lf)}
+    if(favs.has(it.key)&&!inTrash()){const st=document.createElement('span');st.className='star';st.textContent='★';tile.append(st)}
     return tile;
   };
   let n=0;
@@ -324,7 +360,7 @@ function render(){
     const sec=document.createElement('section');sec.className='grp';
     const head=document.createElement('div');head.className='sec';
     const nm=document.createElement('span');const b=document.createElement('b');b.textContent=grp.n;const sm=document.createElement('small');
-    const vids=tab==='videos';sm.textContent=grp.items.length+(vids?(grp.items.length===1?' vídeo':' vídeos'):(grp.items.length===1?' foto':' fotos'));
+    const vids=tab==='videos'&&!inTrash();sm.textContent=grp.items.length+(inTrash()?(grp.items.length===1?' item':' itens'):vids?(grp.items.length===1?' vídeo':' vídeos'):(grp.items.length===1?' foto':' fotos'));
     nm.append(b,sm);
     const ck=document.createElement('button');ck.className='ck';ck.setAttribute('aria-label','Selecionar '+grp.n);ck.innerHTML=svg('check',16);
     const keys=grp.items.map(x=>x.key);head._keys=keys;
@@ -338,13 +374,22 @@ function render(){
   const none=list.length===0;$('#empty').hidden=!none;
   if(none){
     if(q){$('#emptyT').textContent='Nada encontrado';$('#emptyP').textContent='Tente outro nome.'}
+    else if(inTrash()){$('#emptyT').textContent='Lixeira vazia';$('#emptyP').textContent='O que você apagar fica aqui por 30 dias.'}
     else if(tab==='videos'){$('#emptyT').textContent='Nenhum vídeo ainda';$('#emptyP').textContent='Toque no + e escolha “Adicionar vídeos”.'}
     else if(albumOpen){$('#emptyT').textContent='Álbum vazio';$('#emptyP').textContent='Segure uma foto, escolha Álbum e coloque aqui.'}
     else{$('#emptyT').textContent='Nenhuma foto ainda';$('#emptyP').textContent='Toque no + e escolha “Adicionar fotos”.'}
   }
   info();
 }
-function loadUser(){return new Promise(res=>{if(!db){res();return}const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>{userPhotos=r.result;render();res()};r.onerror=()=>res()})}
+let purged=false;
+async function purgeExpired(){
+  const now=Date.now();let changed=false;const pool=userItems().concat(bundled);
+  for(const k of Object.keys(trash)){
+    if(now-trash[k]>TRASH_DAYS*DAY){const it=pool.find(x=>x.key===k);if(it)await permDelete(it);else{delete trash[k];changed=true}}
+  }
+  if(changed)saveTrash();
+}
+function loadUser(){return new Promise(res=>{if(!db){res();return}const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>{userPhotos=r.result;if(!purged){purged=true;purgeExpired().then(render)}render();res()};r.onerror=()=>res()})}
 function idbAdd(rec){return new Promise(res=>{if(!db)return res(null);const r=db.transaction(store,'readwrite').objectStore(store).add(rec);r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)})}
 function idbDelete(id){return new Promise(res=>{if(!db)return res();const r=db.transaction(store,'readwrite').objectStore(store).delete(id);r.onsuccess=r.onerror=()=>res()})}
 render();
@@ -464,8 +509,31 @@ function show(){
   const fb=menu.querySelector('[data-a=fav]'),on=favs.has(it.key);
   fb.innerHTML=svg(on?'starF':'star')+'<span>'+(on?'Remover dos favoritos':'Favoritar')+'</span>';
   menu.querySelector('[data-a=edit]').hidden=v;menu.hidden=true;
+  if(infoOpen)infoFill();
 }
-viewer.addEventListener('close',()=>{try{vid.pause()}catch(e){}});
+viewer.addEventListener('close',()=>{try{vid.pause()}catch(e){}closeInfo()});
+/* painel de informações (arrastar a foto para cima) */
+let infoOpen=false;
+function fmtSize(b){return b>=1048576?(b/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(b/1024))+' KB'}
+function infoFill(){
+  const it=list[index];if(!it)return;
+  $('#iNameV').textContent=it.name;$('#iRen').hidden=true;
+  $('#iDate').textContent=it.added?new Date(it.added).toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'}):'Foto do app';
+  let dim='';
+  if(isVideo(it)){dim=(vid.videoWidth&&vid.videoHeight?vid.videoWidth+' × '+vid.videoHeight:'')+(it.duration?(vid.videoWidth?' · ':'')+fmtDur(it.duration):'')}
+  else if(imgEl.naturalWidth)dim=imgEl.naturalWidth+' × '+imgEl.naturalHeight;
+  const sz=it.blob?fmtSize(it.blob.size):'';
+  $('#iSize').textContent=[dim,sz].filter(Boolean).join(' · ')||'—';
+  const al=albums.filter(a=>a.keys.includes(it.key)).map(a=>a.name);
+  if(favs.has(it.key))al.push('Favoritas');if(!isVideo(it))al.push(catOf(it.name));
+  $('#iAlb').textContent=al.join(', ');
+}
+function openInfo(){infoOpen=true;$('#info').hidden=false;infoFill();viewer.style.setProperty('--infoH',$('#info').offsetHeight+'px');viewer.classList.add('showinfo');menu.hidden=true}
+function closeInfo(){infoOpen=false;$('#info').hidden=true;viewer.classList.remove('showinfo')}
+imgEl.addEventListener('load',()=>{if(infoOpen)infoFill()});vid.addEventListener('loadedmetadata',()=>{if(infoOpen)infoFill()});
+$('#iEdit').onclick=()=>{const it=list[index];if(!it)return;$('#iRen').hidden=false;$('#iNameIn').value=it.name;$('#iNameIn').focus();$('#iNameIn').select();viewer.style.setProperty('--infoH',$('#info').offsetHeight+'px')};
+function saveRename(){const it=list[index],n=$('#iNameIn').value.trim();if(!it||!n)return;names[it.key]=n;saveNames();it.name=n;render();infoFill();viewer.style.setProperty('--infoH',$('#info').offsetHeight+'px');toast('Nome alterado')}
+$('#iNameOk').onclick=saveRename;$('#iNameIn').addEventListener('keydown',e=>{if(e.key==='Enter')saveRename()});
 function slide(n){
   if(list.length<2){full.style.transition='transform .15s';full.style.transform='';return}
   const old=full;
@@ -497,7 +565,7 @@ stage.addEventListener('touchmove',e=>{
   if(z>1){px=sx+dx;py=sy+dy;clampPan();applyT();return}
   if(!mode&&moved)mode=Math.abs(dy)>Math.abs(dx)?'v':'h';
   if(mode==='h')full.style.transform='translateX('+dx+'px)';
-  else if(mode==='v')full.style.transform='translateY('+Math.max(0,dy)+'px)';
+  else if(mode==='v')full.style.transform='translateY('+(dy>0?dy:dy*0.4)+'px)';
 },{passive:true});
 stage.addEventListener('touchend',e=>{
   if(!drag)return;
@@ -520,16 +588,17 @@ stage.addEventListener('touchend',e=>{
   }
   if(z>1)return;
   if(mode==='h'&&Math.abs(dx)>60)slide(dx<0?1:-1);
-  else if(mode==='v'&&dy>110)viewer.close();
+  else if(mode==='v'&&dy<-70){if(!infoOpen)openInfo();full.style.transition='transform .15s';full.style.transform=''}
+  else if(mode==='v'&&dy>110){if(infoOpen){closeInfo();full.style.transition='transform .15s';full.style.transform=''}else viewer.close()}
   else{full.style.transition='transform .15s';full.style.transform=''}
 });
-stage.onclick=()=>{menu.hidden=true};
+stage.onclick=()=>{menu.hidden=true;if(infoOpen)closeInfo()};
 document.addEventListener('keydown',e=>{if(!viewer.open||editor.open)return;if(e.key==='ArrowLeft')slide(-1);if(e.key==='ArrowRight')slide(1)});
 $('#more').onclick=e=>{e.stopPropagation();menu.hidden=!menu.hidden};
-menu.onclick=e=>{const b=e.target.closest('button');if(!b)return;menu.hidden=true;({edit:()=>openEditor(),share:()=>shareItems([list[index]]),fav:()=>{const it=list[index];toggleFav([it]);show()},save:saveCurrent,del:()=>{$('#confirmT').textContent=isVideo(list[index])?'Apagar este vídeo?':'Apagar esta foto?';$('#confirm').hidden=false}})[b.dataset.a]()};
+menu.onclick=e=>{const b=e.target.closest('button');if(!b)return;menu.hidden=true;({edit:()=>openEditor(),share:()=>shareItems([list[index]]),fav:()=>{const it=list[index];toggleFav([it]);show()},save:saveCurrent,del:()=>{$('#confirmT').textContent=isVideo(list[index])?'Apagar este vídeo?':'Apagar esta foto?';$('#confirmP').textContent='Vai para a lixeira por 30 dias.';$('#confirm').hidden=false}})[b.dataset.a]()};
 
 /* ---------- seleção de vários itens ---------- */
-function selItems(){return allItems().filter(it=>sel.has(it.key))}
+function selItems(){return (inTrash()?trashItems():allItems()).filter(it=>sel.has(it.key))}
 function toggleSel(key,force){
   if(force&&!selMode){selMode=true;document.body.classList.add('sel')}
   if(force)sel.add(key);else if(sel.has(key))sel.delete(key);else sel.add(key);
@@ -542,7 +611,9 @@ function refreshSel(){
   $('#selCount').textContent=sel.size+(sel.size===1?' selecionado':' selecionados');
   $('#bEdit').disabled=sel.size!==1;
   document.querySelectorAll('.sec').forEach(h=>{const c=h.querySelector('.ck');if(c&&h._keys)c.classList.toggle('on',h._keys.length>0&&h._keys.every(k=>sel.has(k)))});
-  const v=tab==='videos';$('#bEdit').hidden=v;$('#bAlb').hidden=v;
+  const v=tab==='videos',tr=inTrash();
+  $('#bEdit').hidden=v||tr;$('#bAlb').hidden=v||tr;$('#bShare').hidden=tr;$('#bFav').hidden=tr;$('#bSave').hidden=tr;$('#bRestore').hidden=!tr;
+  $('#bDelT').textContent=tr?'Apagar de vez':'Excluir';
 }
 function exitSel(){sel.clear();selMode=false;document.body.classList.remove('sel');refreshSel()}
 $('#selCancel').onclick=exitSel;
@@ -561,12 +632,21 @@ $('#bSave').onclick=async()=>{
 };
 $('#bDel').onclick=()=>{
   const n=sel.size,vids=tab==='videos';
-  askConfirm('Excluir '+n+(vids?' vídeo(s)?':' foto(s)?'),'Eles somem da galeria.','Excluir',async()=>{
+  if(inTrash()){
+    askConfirm('Apagar de vez '+n+(n===1?' item?':' itens?'),'Isso não pode ser desfeito.','Apagar de vez',async()=>{
+      const items=selItems();exitSel();
+      for(const it of items)await permDelete(it);
+      render();toast(items.length+(items.length===1?' item apagado de vez':' itens apagados de vez'));
+    });return;
+  }
+  askConfirm('Excluir '+n+(vids?' vídeo(s)?':' foto(s)?'),'Vão para a lixeira e ficam lá por 30 dias.','Excluir',async()=>{
     const items=selItems();exitSel();
     for(const it of items)await removeItem(it);
-    render();toast(items.length+' item(ns) apagado(s)');
+    render();toast(items.length+' item(ns) na lixeira');
   });
 };
+$('#bRestore').onclick=()=>{const items=selItems();exitSel();items.forEach(it=>{delete trash[it.key]});saveTrash();render();toast(items.length+(items.length===1?' item restaurado':' itens restaurados'))};
+$('#trashEmpty').onclick=()=>{const n=trashItems().length;if(!n)return;askConfirm('Esvaziar a lixeira?',n+(n===1?' item será apagado de vez.':' itens serão apagados de vez.'),'Esvaziar',async()=>{for(const it of trashItems())await permDelete(it);render();toast('Lixeira esvaziada')})};
 /* colocar em álbum */
 function closeSheet(){$('#albSheet').hidden=true}
 $('#asNo').onclick=closeSheet;
@@ -580,7 +660,9 @@ $('#bAlb').onclick=()=>{
 };
 
 /* ---------- apagar ---------- */
-async function removeItem(it){
+async function removeItem(it){trash[it.key]=Date.now();saveTrash()}
+async function permDelete(it){
+  delete trash[it.key];saveTrash();delete names[it.key];saveNames();
   favs.delete(it.key);saveFavs();
   albums.forEach(al=>{al.keys=al.keys.filter(k=>k!==it.key)});saveAlbums();
   if(it.kind==='b'){hiddenSet.add(it.key);saveHidden()}
@@ -593,7 +675,7 @@ $('#cYes').onclick=async()=>{
   await removeItem(it);
   render();
   if(!list.length){viewer.close();return}
-  index=Math.min(index,list.length-1);show();toast(v?'Vídeo apagado':'Foto apagada');
+  index=Math.min(index,list.length-1);show();toast(v?'Vídeo na lixeira':'Foto na lixeira');
 };
 
 /* ---------- salvar e compartilhar ---------- */
@@ -791,6 +873,7 @@ window.irisBack=()=>{
   if(!$('#confirm').hidden){$('#confirm').hidden=true;return true}
   if(editor.open){closeEditor();return true}
   if(!menu.hidden){menu.hidden=true;return true}
+  if(infoOpen){closeInfo();return true}
   if(viewer.open){viewer.close();return true}
   if(!$('#searchBox').hidden){$('#searchBtn').click();return true}
   if(albumOpen){albumOpen=null;render();return true}
