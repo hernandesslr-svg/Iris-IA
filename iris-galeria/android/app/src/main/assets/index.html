@@ -32,9 +32,19 @@ dialog::backdrop{background:#000}
 .tools{padding:10px 14px 16px;background:#120c1d;flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .tools .row button{padding:9px 12px;font-size:.9rem}.tools .on{background:#a55df5}
 .tools label{display:flex;align-items:center;gap:10px;margin:6px 0;color:#d8cde8;font-size:.95rem}.tools label b{width:84px;font-weight:600}.tools input[type=range]{flex:1;accent-color:#a55df5}
+header{position:relative}
+#menuBtn{position:absolute;top:40px;right:16px;width:46px;height:46px;padding:0;border-radius:12px;background:#30253e;font-size:1.5rem;line-height:1}
+#banner{background:#3a2560;border:1px solid #a55df5;border-radius:14px;padding:12px 14px;margin:0 0 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#settings .body{flex:1;overflow:auto;padding-bottom:30px}
+.sec{background:#1b1329;border:1px solid #3d2e55;border-radius:16px;padding:16px;margin:14px 16px}
+.sec h3{margin:0 0 8px}.sec p{margin:6px 0}.sec .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#lock{background:linear-gradient(160deg,#342052,#100b1c)}
+#lock[open]{align-items:center;justify-content:center;text-align:center;padding:24px}
+#lock h1{margin:0 0 6px}#lock button{margin-top:14px;min-width:200px}
 </style></head><body>
-<header><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste aparelho.</p></main></header>
+<header><button id="menuBtn" aria-label="Menu e configurações">☰</button><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste aparelho.</p></main></header>
 <main>
+<div id="banner" hidden><span id="bannerText"></span><button id="bannerBtn">Atualizar agora</button></div>
 <div class="toolbar"><label class="upload" for="files">＋ Adicionar fotos</label><input id="files" type="file" accept="image/*" multiple><input id="search" type="search" placeholder="Buscar por nome..."><button id="all" class="secondary">Todas</button></div>
 <p id="info"></p>
 <div id="gallery" class="grid"></div>
@@ -47,6 +57,17 @@ dialog::backdrop{background:#000}
   <div id="stage"><img id="full" alt=""></div>
   <div id="confirm" hidden><div><h3 style="margin:0 0 8px">Apagar esta foto?</h3><p style="margin:0">Ela some da galeria.</p><div class="row"><button id="cNo" class="secondary">Cancelar</button><button id="cYes" class="danger">Apagar</button></div></div></div>
 </dialog>
+
+<dialog id="settings" class="full">
+  <div class="vbar"><button id="sBack" class="icon" aria-label="Voltar">←</button><span>Configurações</span><span style="width:60px"></span></div>
+  <div class="body">
+    <div class="sec" id="secSec"><h3>🔒 Bloqueio do aplicativo</h3><p id="lockState"></p><div class="row"><button id="lockBtn"></button></div></div>
+    <div class="sec" id="updSec"><h3>⬇ Atualização</h3><p id="updInfo">Toque para ver se há versão nova.</p><div class="row"><button id="chk">Buscar atualização</button></div></div>
+    <div class="sec"><h3>Sobre</h3><p>Iris Galeria · versão <span id="ver"></span></p></div>
+  </div>
+</dialog>
+
+<dialog id="lock" class="full"><div><h1>✦ Iris Galeria</h1><p>Aplicativo bloqueado 🔒</p><button id="unlockBtn">Desbloquear</button></div></dialog>
 
 <dialog id="editor" class="full">
   <div class="vbar"><button id="eCancel" class="icon" aria-label="Cancelar">✕</button><span>Editar foto</span><button id="eSave">Salvar</button></div>
@@ -62,8 +83,8 @@ dialog::backdrop{background:#000}
 <script src="fotos/manifest.js"></script>
 <script>
 const $=s=>document.querySelector(s);
-const VERSION='1.2';
 const bridge=window.IrisAndroid||null;
+const VERSION=bridge&&bridge.versionName?bridge.versionName():'web';
 const dbName='iris-galeria-v1',store='photos';
 let db=null,userPhotos=[],list=[],index=0,failed=0;
 const urls=new Map();
@@ -97,27 +118,57 @@ try{const req=indexedDB.open(dbName,1);req.onupgradeneeded=()=>req.result.create
 $('#files').onchange=async e=>{const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));for(const f of files)await idbAdd({name:f.name.replace(/\.[^.]+$/,''),blob:f,lastModified:Date.now()});e.target.value='';loadUser()};
 $('#search').oninput=render;$('#all').onclick=()=>{$('#search').value='';render()};
 
-function toast(msg){const t=document.createElement('div');t.id='toast';t.textContent=msg;const old=$('#toast');if(old)old.remove();(editor.open?editor:viewer.open?viewer:document.body).append(t);setTimeout(()=>t.remove(),2400)}
+function toast(msg){const t=document.createElement('div');t.id='toast';t.textContent=msg;const old=$('#toast');if(old)old.remove();(editor.open?editor:viewer.open?viewer:settings.open?settings:document.body).append(t);setTimeout(()=>t.remove(),2400)}
 
 /* ---------- visualizador ---------- */
-const viewer=$('#viewer'),editor=$('#editor'),full=$('#full'),stage=$('#stage'),menu=$('#menu');
+const viewer=$('#viewer'),settings=$('#settings'),lockDlg=$('#lock'),editor=$('#editor'),full=$('#full'),stage=$('#stage'),menu=$('#menu');
 function openViewer(i){index=i;show();if(!viewer.open)viewer.showModal()}
-function show(){const it=list[index];if(!it)return;full.style.transition='none';full.style.transform='';full.style.opacity='1';full.src=srcOf(it);full.alt=it.name;menu.hidden=true}
+function show(){const it=list[index];if(!it)return;z=1;px=0;py=0;full.style.transition='none';full.style.transform='';full.style.opacity='1';full.src=srcOf(it);full.alt=it.name;menu.hidden=true}
 function slide(n){
   if(list.length<2){full.style.transition='transform .15s';full.style.transform='';return}
   full.style.transition='transform .15s,opacity .15s';full.style.transform='translateX('+(n>0?-100:100)+'%)';full.style.opacity='0';
   setTimeout(()=>{index=(index+n+list.length)%list.length;show();full.style.transform='translateX('+(n>0?60:-60)+'%)';full.style.opacity='0';void full.offsetWidth;full.style.transition='transform .15s,opacity .15s';full.style.transform='';full.style.opacity='1'},150);
 }
-let tx=0,ty=0,dx=0,dy=0,drag=false,mode='';
-stage.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;tx=e.touches[0].clientX;ty=e.touches[0].clientY;dx=0;dy=0;mode='';drag=true;full.style.transition='none'},{passive:true});
+let z=1,px=0,py=0,tx=0,ty=0,sx=0,sy=0,dx=0,dy=0,drag=false,moved=false,mode='',pinchD=0,pinchZ=1,lastTap=0;
+const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+function clampPan(){const mx=Math.max(0,(z*full.clientWidth-stage.clientWidth)/2),my=Math.max(0,(z*full.clientHeight-stage.clientHeight)/2);px=Math.min(mx,Math.max(-mx,px));py=Math.min(my,Math.max(-my,py))}
+function applyT(){full.style.transform='translate('+px+'px,'+py+'px) scale('+z+')'}
+stage.addEventListener('touchstart',e=>{
+  full.style.transition='none';
+  if(e.touches.length===2){mode='pinch';pinchD=dist(e.touches);pinchZ=z;drag=true;return}
+  if(e.touches.length!==1)return;
+  tx=e.touches[0].clientX;ty=e.touches[0].clientY;sx=px;sy=py;dx=0;dy=0;mode='';moved=false;drag=true;
+},{passive:true});
 stage.addEventListener('touchmove',e=>{
-  if(!drag)return;dx=e.touches[0].clientX-tx;dy=e.touches[0].clientY-ty;
-  if(!mode&&(Math.abs(dx)>8||Math.abs(dy)>8))mode=Math.abs(dy)>Math.abs(dx)?'v':'h';
+  if(!drag)return;
+  if(mode==='pinch'){if(e.touches.length===2){z=Math.min(6,Math.max(1,pinchZ*dist(e.touches)/pinchD));clampPan();applyT()}return}
+  if(e.touches.length!==1)return;
+  dx=e.touches[0].clientX-tx;dy=e.touches[0].clientY-ty;
+  if(Math.abs(dx)>8||Math.abs(dy)>8)moved=true;
+  if(z>1){px=sx+dx;py=sy+dy;clampPan();applyT();return}
+  if(!mode&&moved)mode=Math.abs(dy)>Math.abs(dx)?'v':'h';
   if(mode==='h')full.style.transform='translateX('+dx+'px)';
   else if(mode==='v')full.style.transform='translateY('+Math.max(0,dy)+'px)';
 },{passive:true});
-stage.addEventListener('touchend',()=>{
-  if(!drag)return;drag=false;
+stage.addEventListener('touchend',e=>{
+  if(!drag)return;
+  if(mode==='pinch'){
+    if(e.touches.length>0){tx=e.touches[0].clientX;ty=e.touches[0].clientY;sx=px;sy=py;dx=0;dy=0;mode='';moved=true;return}
+    drag=false;if(z<1.05){z=1;px=0;py=0;full.style.transition='transform .2s';applyT()}return;
+  }
+  if(e.touches.length>0)return;
+  drag=false;
+  if(!moved){
+    const now=Date.now();
+    if(now-lastTap<300){
+      lastTap=0;full.style.transition='transform .2s';
+      if(z>1){z=1;px=0;py=0}
+      else{z=2.5;const r=stage.getBoundingClientRect();px=(r.left+r.width/2-tx)*(z-1);py=(r.top+r.height/2-ty)*(z-1);clampPan()}
+      applyT();
+    }else lastTap=now;
+    return;
+  }
+  if(z>1)return;
   if(mode==='h'&&Math.abs(dx)>60)slide(dx<0?1:-1);
   else if(mode==='v'&&dy>110)viewer.close();
   else{full.style.transition='transform .15s';full.style.transform=''}
@@ -205,7 +256,59 @@ $('#eSave').onclick=()=>{
   },'image/jpeg',0.92);
 };
 
+
+/* ---------- bloqueio com a senha do celular ---------- */
+function showLock(){
+  if(viewer.open)viewer.close();if(editor.open)closeEditor();if(settings.open)settings.close();
+  $('#confirm').hidden=true;if(!lockDlg.open)lockDlg.showModal();
+}
+window.irisLock=()=>{if(bridge&&bridge.lockEnabled())showLock()};
+lockDlg.addEventListener('cancel',e=>e.preventDefault());
+$('#unlockBtn').onclick=()=>{if(bridge)bridge.requestAuth('unlock')};
+window.irisLockEvent=r=>{
+  if(r.event==='unlocked'){if(lockDlg.open)lockDlg.close()}
+  else if(r.event==='locked')showLock();
+  else if(r.event==='enabled'){toast('Bloqueio ativado');refreshSettings()}
+  else if(r.event==='disabled'){toast('Bloqueio desativado');refreshSettings()}
+  else if(r.event==='nosecure')toast('Primeiro defina uma senha, padrão ou digital nas configurações do celular');
+  else if(r.event==='failed')toast('Não foi possível confirmar');
+};
+
+/* ---------- configurações ---------- */
+function refreshSettings(){
+  $('#ver').textContent=VERSION;
+  $('#secSec').hidden=!bridge;$('#updSec').hidden=!bridge;
+  if(!bridge)return;
+  const on=bridge.lockEnabled();
+  $('#lockState').textContent=on?'Ativado: ao abrir o app ele pede a senha, o padrão ou a digital do celular.':'Desativado. Ao ativar, o app usa a senha, o padrão ou a digital que você já usa para desbloquear o celular.';
+  $('#lockBtn').textContent=on?'Desativar bloqueio':'Ativar bloqueio';
+}
+$('#menuBtn').onclick=()=>{refreshSettings();settings.showModal()};
+$('#sBack').onclick=()=>settings.close();
+$('#lockBtn').onclick=()=>{if(bridge)bridge.requestAuth(bridge.lockEnabled()?'disable':'enable')};
+
+/* ---------- atualização do app ---------- */
+let manualCheck=false,updAvail=false;
+function setUpd(t){$('#updInfo').textContent=t}
+window.irisUpdate=r=>{
+  const b=$('#banner'),t=$('#bannerText'),btn=$('#bannerBtn');
+  if(r.status==='available'){updAvail=true;const txt='Nova versão '+(r.msg||'')+' disponível.';t.textContent=txt;btn.hidden=false;b.hidden=false;$('#chk').textContent='Atualizar agora';setUpd(txt)}
+  else if(r.status==='downloading'){t.textContent='Baixando atualização… ao terminar, confirme a instalação.';btn.hidden=true;b.hidden=false;setUpd('Baixando…')}
+  else if(r.status==='permission'){toast('Permita instalar apps desta fonte, volte e toque em Atualizar de novo');setUpd('Falta permitir a instalação de apps desta fonte.')}
+  else if(r.status==='none'){setUpd('Você já está na versão mais recente.');if(manualCheck)toast('Você já está na versão mais recente')}
+  else if(r.status==='error'){setUpd('Não consegui verificar agora.');if(manualCheck)toast('Não consegui verificar a atualização')}
+  if(r.status!=='downloading'&&r.status!=='permission')manualCheck=false;
+};
+if(bridge&&bridge.checkUpdate){
+  $('#chk').onclick=()=>{if(updAvail)bridge.installUpdate();else{manualCheck=true;setUpd('Verificando…');bridge.checkUpdate()}};
+  $('#bannerBtn').onclick=()=>bridge.installUpdate();
+  setTimeout(()=>bridge.checkUpdate(),1500);
+}
+if(bridge&&bridge.isLocked())showLock();
+
 window.irisBack=()=>{
+  if(lockDlg.open)return false;
+  if(settings.open){settings.close();return true}
   if(!$('#confirm').hidden){$('#confirm').hidden=true;return true}
   if(editor.open){closeEditor();return true}
   if(!menu.hidden){menu.hidden=true;return true}

@@ -5,7 +5,7 @@ on:
       - iris-galeria
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon --stacktrace --console=plain --warning-mode all --refresh-dependencies :app:assembleDebug 2>&1 | tee build.log
+          gradle -PirisVc=${{ github.run_number }} --no-daemon --stacktrace --console=plain --warning-mode all --refresh-dependencies :app:assembleDebug 2>&1 | tee build.log
       - name: Diagnostico de falha
         if: failure()
         run: |
@@ -67,3 +67,16 @@ jobs:
           path: iris-galeria/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Publicar versão para atualização dentro do app
+        if: github.ref == 'refs/heads/iris-galeria'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VC="${{ github.run_number }}"
+          cp iris-galeria/android/app/build/outputs/apk/debug/app-debug.apk Iris-Galeria.apk
+          gh release delete galeria-latest --cleanup-tag --yes || true
+          gh release create galeria-latest Iris-Galeria.apk \
+            --prerelease --target "${{ github.sha }}" \
+            --title "Iris Galeria 1.3.${VC}" \
+            --notes "versionCode=${VC}"
