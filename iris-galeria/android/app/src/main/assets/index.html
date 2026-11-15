@@ -163,6 +163,7 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
   <label class="it" for="fVideos"><span data-ic="videoPlus"></span>Adicionar vídeos</label>
   <label class="it" for="fCam"><span data-ic="camera"></span>Tirar foto</label>
   <button class="it" id="mAlbum"><span data-ic="folderPlus"></span>Criar álbum</button>
+  <button class="it" id="mShow"><span data-ic="play"></span>Apresentação de slides</button>
   <div class="dv"></div>
   <label class="it" for="fZip"><span data-ic="zip"></span>Importar de um ZIP</label>
 </div>
@@ -195,8 +196,6 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
     <div class="gl">Aparência</div>
     <div class="card"><b>Tema</b><div class="seg" id="themeSeg"><button data-th="auto">Automático</button><button data-th="light">Claro</button><button data-th="dark">Escuro</button></div>
     <b style="display:block;margin-top:18px">Cor de destaque</b><div class="acl" id="accSw"></div></div>
-    <div class="gl">Apresentação</div>
-    <div class="card"><div class="rw"><span class="ri" data-ic="play"></span><div class="rt"><b>Apresentação de slides</b><small>Passa as fotos sozinho, em tela cheia.</small></div></div><button id="ssBtn" class="full">Iniciar</button></div>
     <div id="secSec"><div class="gl">Segurança</div>
     <div class="card"><div class="rw"><span class="ri" data-ic="lock"></span><div class="rt"><b>Bloquear o aplicativo</b><small id="lockState"></small></div><button id="lockBtn" class="sw" role="switch" aria-checked="false" aria-label="Bloquear o aplicativo"><i></i></button></div></div></div>
     <div id="updSec"><div class="gl">Atualização</div>
@@ -718,7 +717,7 @@ function ssStart(){
   $('#ssBar').hidden=false;const h=$('#ssHint');h.textContent='Tocar para pausar';h.hidden=false;setTimeout(()=>{if(ssOn&&!ssPaused)h.hidden=true},2500);
   openViewer(0);ssTick();
 }
-$('#ssBtn').onclick=ssStart;
+$('#mShow').onclick=()=>{closePlus();ssStart()};
 viewer.addEventListener('close',ssStop);
 function ssToggle(){
   ssPaused=!ssPaused;const h=$('#ssHint'),bar=$('#ssBar i');
