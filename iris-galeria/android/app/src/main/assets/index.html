@@ -68,10 +68,16 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 #nameIn{margin-top:12px;border-radius:12px}
 #toast{position:fixed;left:50%;bottom:calc(108px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--s3);border:1px solid #555;color:#fff;padding:10px 16px;border-radius:999px;z-index:90;max-width:90%;text-align:center;font-size:.95rem}
 /* editor */
-#ePreview{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px;background:#0b0b0b}#canvas{max-width:100%;max-height:100%;object-fit:contain}
-.tools{padding:10px 14px 16px;background:var(--s1);flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.tools .row button{padding:9px 12px;font-size:.9rem}.tools button.on{background:var(--tx);color:#141414}
-.tools label{display:flex;align-items:center;gap:10px;margin:6px 0;color:#ddd;font-size:.95rem}.tools label b{width:84px;font-weight:600}.tools input[type=range]{flex:1;accent-color:#f2f2f2}
+#ePreview{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:10px;background:#0b0b0b;position:relative}#canvas{max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;touch-action:none;-webkit-user-select:none;user-select:none}
+.eround{position:absolute;top:18px;width:38px;height:38px;border-radius:50%;background:#141414cc;color:#eee;display:flex;align-items:center;justify-content:center;padding:0}.eround:disabled{color:#666}#eUndo{left:18px}#eRedo{left:64px}
+#eHint{position:absolute;top:18px;right:18px;background:#141414cc;color:#ddd;padding:9px 13px;border-radius:18px;font-size:.78rem;pointer-events:none}
+.tools{background:var(--s1);flex:none;padding:12px 16px 0}.tools .pane{min-height:104px}
+.tools .chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 4px}.tools .chips button{padding:8px 15px;font-size:.88rem;border-radius:20px;background:#2a2a30;color:#eee}.tools .chips button.on{background:var(--tx);color:#141414;font-weight:600}
+.tools .val{display:flex;justify-content:space-between;align-items:baseline;font-size:.95rem}.tools .val span:last-child{color:#aaa}
+.tools input[type=range]{width:100%;accent-color:#f2f2f2;margin:6px 0}
+.tools .big{display:flex;gap:10px;justify-content:center;padding-top:16px}.tools .big button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 18px;min-width:92px;font-size:.88rem}.tools .big button.on{background:var(--tx);color:#141414}
+.etabs{display:flex;justify-content:space-around;border-top:.5px solid #333;margin:6px -16px 0;padding:10px 4px max(26px,calc(10px + env(safe-area-inset-bottom)));background:#1b1b1f}
+.etabs button{background:transparent;color:#999;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;padding:4px 10px}.etabs button.on{color:#fff}
 /* lixeira e informações */
 #trashNote{display:none;margin:6px 14px 0;font-size:.85rem;color:var(--mut)}body.intrash #trashNote{display:block}
 .tile.trashc{background:#2a1f22;border:1.5px solid #5a3a42;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#ff9fb0;aspect-ratio:1/1;cursor:pointer;font-weight:600}
@@ -173,12 +179,12 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 
 <dialog id="editor" class="full">
   <div class="vbar"><button id="eCancel" class="icon" aria-label="Cancelar"><span data-ic="x" data-s="24"></span></button><span>Editar foto</span><button id="eSave">Salvar</button></div>
-  <div id="ePreview"><canvas id="canvas"></canvas></div>
+  <div id="ePreview"><canvas id="canvas"></canvas><button id="eUndo" class="eround" aria-label="Desfazer" disabled><span data-ic="undo" data-s="19"></span></button><button id="eRedo" class="eround" aria-label="Refazer" disabled><span data-ic="redo" data-s="19"></span></button><div id="eHint">Segure: ver original</div></div>
   <div class="tools">
-    <div class="row"><button id="rotL" class="secondary">⟲ Girar</button><button id="rotR" class="secondary">⟳ Girar</button><button id="flip" class="secondary">⇋ Espelhar</button><button id="bw" class="secondary">Preto e branco</button><button id="eReset" class="secondary">Redefinir</button></div>
-    <label><b>Brilho</b><input type="range" id="sBri" min="40" max="160" value="100"></label>
-    <label><b>Contraste</b><input type="range" id="sCon" min="40" max="160" value="100"></label>
-    <label><b>Saturação</b><input type="range" id="sSat" min="0" max="200" value="100"></label>
+    <div class="pane" id="pAdj"><div class="val"><b id="adjN">Brilho</b><span id="adjV">0</span></div><input type="range" id="adjS" min="-60" max="60" value="0"><div class="chips" id="adjC"><button data-k="bri" class="on">Brilho</button><button data-k="con">Contraste</button><button data-k="sat">Saturação</button></div></div>
+    <div class="pane" id="pRot" hidden><div class="big"><button id="rotL" class="secondary"><span data-ic="rotl" data-s="24"></span>Esquerda</button><button id="rotR" class="secondary"><span data-ic="rotr" data-s="24"></span>Direita</button><button id="flip" class="secondary"><span data-ic="flip" data-s="24"></span>Espelhar</button></div></div>
+    <div class="pane" id="pFx" hidden><div class="chips" id="fxC" style="margin-top:22px"><button data-f="">Original</button><button data-f="bw">Preto e branco</button><button data-f="sepia">Sépia</button><button data-f="warm">Quente</button><button data-f="fade">Desbotado</button><button data-f="vivid">Intenso</button></div></div>
+    <div class="etabs"><button data-t="adj" class="on"><span data-ic="sliders" data-s="23"></span>Ajustar</button><button data-t="rot"><span data-ic="rotr" data-s="23"></span>Girar</button><button data-t="fx"><span data-ic="filter" data-s="23"></span>Filtros</button><button id="eReset"><span data-ic="restore" data-s="23"></span>Redefinir</button></div>
   </div>
 </dialog>
 
@@ -190,6 +196,13 @@ const VERSION=bridge&&bridge.versionName?bridge.versionName():'web';
 
 /* ---------- ícones (sem emoji) ---------- */
 const ICONS={
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  redo:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+  rotl:'<path d="M4 4v5h5"/><path d="M4.5 9A8 8 0 1 1 4 13"/>',
+  rotr:'<path d="M20 4v5h-5"/><path d="M19.5 9A8 8 0 1 0 20 13"/>',
+  flip:'<path d="M12 3v18"/><path d="M8 7L3 17h5z"/><path d="M16 7l5 10h-5z"/>',
+  sliders:'<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/>',
+  filter:'<circle cx="9" cy="10" r="5.5"/><circle cx="15" cy="10" r="5.5"/><circle cx="12" cy="15" r="5.5"/>',
   lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
   check:'<path d="M5 12l5 5 9-10"/>',
@@ -721,37 +734,54 @@ async function shareItems(items){
 
 /* ---------- editar ---------- */
 let ed=null;
-function syncControls(){$('#sBri').value=ed.bri;$('#sCon').value=ed.con;$('#sSat').value=ed.sat;$('#bw').classList.toggle('on',ed.bw);$('#flip').classList.toggle('on',ed.flip)}
+const FX={'':'',bw:'grayscale(1)',sepia:'sepia(.85)',warm:'sepia(.35) saturate(1.3)',fade:'contrast(.85) brightness(1.1) saturate(.8)',vivid:'contrast(1.15) saturate(1.4)'};
+const ADJ={bri:{n:'Brilho',min:-60,max:60,k:'bri'},con:{n:'Contraste',min:-60,max:60,k:'con'},sat:{n:'Saturação',min:-100,max:100,k:'sat'}};
+let adjK='bri',hist=[],hi=0;
+const snap=()=>({rot:ed.rot,flip:ed.flip,fx:ed.fx,bri:ed.bri,con:ed.con,sat:ed.sat});
+function commit(){hist=hist.slice(0,hi+1);hist.push(snap());hi=hist.length-1;syncControls()}
+function adjSync(){const a=ADJ[adjK],sl=$('#adjS');sl.min=a.min;sl.max=a.max;sl.value=ed[adjK]-100;$('#adjN').textContent=a.n;$('#adjV').textContent=(ed[adjK]-100>0?'+':'')+(ed[adjK]-100);$('#adjC').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===adjK))}
+function syncControls(){adjSync();$('#fxC').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.f===ed.fx));$('#flip').classList.toggle('on',ed.flip);$('#eUndo').disabled=hi<=0;$('#eRedo').disabled=hi>=hist.length-1}
+function eTab(t){['adj','rot','fx'].forEach(k=>$('#p'+k[0].toUpperCase()+k.slice(1)).hidden=k!==t);document.querySelectorAll('.etabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 async function openEditor(it){
   it=it||list[index];if(!it||isVideo(it))return;
   try{
     const url=URL.createObjectURL(await blobOf(it)),img=new Image();
     await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
-    ed={img,url,item:it,rot:0,flip:false,bw:false,bri:100,con:100,sat:100};
+    ed={img,url,item:it,rot:0,flip:false,fx:'',bri:100,con:100,sat:100,orig:false};
+    hist=[snap()];hi=0;adjK='bri';eTab('adj');
     syncControls();editor.showModal();draw();
   }catch(e){toast('Não foi possível abrir a foto para editar')}
 }
 function paint(cv,max){
-  const img=ed.img,sw=img.naturalWidth,sh=img.naturalHeight,rotated=ed.rot%180!==0;
+  const img=ed.img,sw=img.naturalWidth,sh=img.naturalHeight,o=ed.orig,rot=o?0:ed.rot,rotated=rot%180!==0;
   const w=rotated?sh:sw,h=rotated?sw:sh,k=Math.min(1,max/Math.max(w,h));
   cv.width=Math.round(w*k);cv.height=Math.round(h*k);
   const c=cv.getContext('2d');c.save();
-  if('filter' in c)c.filter='brightness('+ed.bri+'%) contrast('+ed.con+'%) saturate('+ed.sat+'%) grayscale('+(ed.bw?1:0)+')';
-  c.translate(cv.width/2,cv.height/2);c.scale(ed.flip?-1:1,1);c.rotate(ed.rot*Math.PI/180);
+  if('filter' in c&&!o)c.filter='brightness('+ed.bri+'%) contrast('+ed.con+'%) saturate('+ed.sat+'%) '+FX[ed.fx];
+  c.translate(cv.width/2,cv.height/2);c.scale(!o&&ed.flip?-1:1,1);c.rotate(rot*Math.PI/180);
   c.drawImage(img,-sw*k/2,-sh*k/2,sw*k,sh*k);c.restore();
 }
 function draw(){paint($('#canvas'),1000)}
 function closeEditor(){if(ed&&ed.url)URL.revokeObjectURL(ed.url);ed=null;editor.close()}
-$('#rotL').onclick=()=>{ed.rot=(ed.rot+270)%360;draw()};
-$('#rotR').onclick=()=>{ed.rot=(ed.rot+90)%360;draw()};
-$('#flip').onclick=()=>{ed.flip=!ed.flip;syncControls();draw()};
-$('#bw').onclick=()=>{ed.bw=!ed.bw;syncControls();draw()};
-$('#sBri').oninput=e=>{ed.bri=+e.target.value;draw()};
-$('#sCon').oninput=e=>{ed.con=+e.target.value;draw()};
-$('#sSat').oninput=e=>{ed.sat=+e.target.value;draw()};
-$('#eReset').onclick=()=>{Object.assign(ed,{rot:0,flip:false,bw:false,bri:100,con:100,sat:100});syncControls();draw()};
+function apply(st){Object.assign(ed,st);syncControls();draw()}
+document.querySelectorAll('.etabs [data-t]').forEach(b=>b.onclick=()=>eTab(b.dataset.t));
+$('#adjC').onclick=e=>{const b=e.target.closest('button');if(!b)return;adjK=b.dataset.k;adjSync()};
+$('#adjS').oninput=e=>{ed[adjK]=100+(+e.target.value);$('#adjV').textContent=(e.target.value>0?'+':'')+e.target.value;draw()};
+$('#adjS').onchange=()=>commit();
+$('#fxC').onclick=e=>{const b=e.target.closest('button');if(!b)return;ed.fx=b.dataset.f;commit();draw()};
+$('#rotL').onclick=()=>{ed.rot=(ed.rot+270)%360;commit();draw()};
+$('#rotR').onclick=()=>{ed.rot=(ed.rot+90)%360;commit();draw()};
+$('#flip').onclick=()=>{ed.flip=!ed.flip;commit();draw()};
+$('#eUndo').onclick=()=>{if(hi>0){hi--;apply(hist[hi])}};
+$('#eRedo').onclick=()=>{if(hi<hist.length-1){hi++;apply(hist[hi])}};
+$('#eReset').onclick=()=>{apply({rot:0,flip:false,fx:'',bri:100,con:100,sat:100});commit()};
+const cvs=$('#canvas');
+cvs.addEventListener('pointerdown',()=>{if(ed){ed.orig=true;draw()}});
+['pointerup','pointercancel','pointerleave'].forEach(t=>cvs.addEventListener(t,()=>{if(ed&&ed.orig){ed.orig=false;draw()}}));
+cvs.addEventListener('contextmenu',e=>e.preventDefault());
 $('#eCancel').onclick=closeEditor;
 $('#eSave').onclick=()=>{
+  ed.orig=false;
   const cv=document.createElement('canvas');paint(cv,4096);
   cv.toBlob(async blob=>{
     if(!blob){toast('Não foi possível salvar a edição');return}
