@@ -36,7 +36,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain 2>&1 | tee build.log
+          if ! gradle :app:assembleDebug --no-daemon --stacktrace --console=plain 2>&1 | tee build.log; then
+            echo "Primeira tentativa falhou. Repetindo com dependencias atualizadas..." | tee -a build.log
+            gradle :app:assembleDebug --no-daemon --stacktrace --console=plain --refresh-dependencies 2>&1 | tee -a build.log
+          fi
           test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Diagnosticar falha
         if: failure()
