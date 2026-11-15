@@ -24,6 +24,7 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
           test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
       - name: Preparar Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -40,6 +41,11 @@ jobs:
         run: |
           set -o pipefail
           gradle --no-daemon --stacktrace --console=plain --warning-mode all --refresh-dependencies :app:assembleDebug 2>&1 | tee build.log
+      - name: Diagnostico de falha
+        if: failure()
+        run: |
+          echo "Etapas anteriores falharam. Verifique os logs desta execucao."
+          find iris-galeria/android -maxdepth 5 -type f \( -name "*.log" -o -name "*.html" \) -print || true
       - name: Publicar diagnostico
         if: always()
         uses: actions/upload-artifact@v4
