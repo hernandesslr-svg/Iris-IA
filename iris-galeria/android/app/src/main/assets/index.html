@@ -82,6 +82,11 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 .etabs{display:flex;justify-content:space-around;border-top:.5px solid #333;margin:6px -16px 0;padding:10px 4px max(26px,calc(10px + env(safe-area-inset-bottom)));background:#1b1b1f}
 .etabs button{background:transparent;color:#999;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;padding:4px 10px}.etabs button.on{color:#fff}
 /* melhorias visuais */
+#ttl{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#top .ibtn{flex:none}
+#albMenu{position:fixed;right:12px;top:calc(max(34px,env(safe-area-inset-top)) + 52px);width:220px;z-index:41;background:var(--s2);border:.5px solid var(--bd);border-radius:18px;padding:6px;box-shadow:0 10px 30px #0008}
+#albMenu button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;color:var(--tx);padding:12px;font-weight:500;font-size:.95rem}
+#albMenu button.danger{color:#ff8a9d}
 .nm{color:#fff}.nm small{color:#e4e4e4}
 html[data-theme=light] .tile.trashc{background:#fbe9ed;border-color:#e5b6c0;color:#c2334f}html[data-theme=light] .tile.trashc small{color:#a8586a}
 html[data-theme=light] .tile.newalb{border-color:#b9bcc6}
@@ -141,7 +146,7 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 #lock{background:var(--bg)}#lock[open]{align-items:center;justify-content:center;text-align:center;padding:24px}
 #lock h1{margin:12px 0 6px;font-weight:600}#lock button{margin-top:14px;min-width:200px}#lock .lic{display:flex;justify-content:center;color:var(--tx)}
 </style></head><body>
-<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1 id="ttl">Galeria privada</h1><span class="sp"></span><button id="trashEmpty" class="ibtn" hidden style="width:auto;padding:0 16px;border-radius:999px;font-size:.88rem;font-weight:600">Esvaziar</button><button id="colsBtn" class="ibtn" aria-label="Colunas da grade"><span data-ic="grid" data-s="20"></span></button><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
+<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1 id="ttl">Galeria privada</h1><span class="sp"></span><button id="albPlay" class="ibtn" hidden aria-label="Apresentação do álbum"><span data-ic="play" data-s="18"></span></button><button id="albAdd" class="ibtn" hidden aria-label="Adicionar fotos ao álbum"><span data-ic="plus" data-s="20"></span></button><button id="albMore" class="ibtn" hidden aria-label="Mais opções do álbum"><span data-ic="dots" data-s="20"></span></button><button id="trashEmpty" class="ibtn" hidden style="width:auto;padding:0 16px;border-radius:999px;font-size:.88rem;font-weight:600">Esvaziar</button><button id="colsBtn" class="ibtn" aria-label="Colunas da grade"><span data-ic="grid" data-s="20"></span></button><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
 <main class="g">
 <div id="banner2" class="bannerx" hidden><span id="banner2Text"></span><button id="banner2Btn">Baixar</button></div>
 <div id="banner" hidden><span id="bannerText"></span><button id="bannerBtn">Atualizar agora</button></div>
@@ -158,6 +163,8 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
 <div id="scrub"><i></i><b></b></div>
 <nav id="bar"><div id="pill"><button data-tab="photos" class="on">Fotos</button><button data-tab="videos">Vídeos</button><button data-tab="albums">Álbuns</button><span class="vs"></span><button id="searchBtn" aria-label="Buscar"><span data-ic="search" data-s="25"></span></button></div><button id="plus" aria-label="Adicionar"><span data-ic="plus" data-s="32"></span></button></nav>
 <div id="plusBack" hidden></div>
+<div id="albBack" hidden style="position:fixed;inset:0;z-index:40"></div>
+<div id="albMenu" hidden><button data-a="ren"><span data-ic="pencil"></span>Renomear álbum</button><button data-a="sel"><span data-ic="check"></span>Selecionar fotos</button><button data-a="del" class="danger"><span data-ic="trash"></span>Apagar álbum</button></div>
 <div id="plusMenu" hidden>
   <label class="it" for="fPhotos"><span data-ic="photoPlus"></span>Adicionar fotos</label>
   <label class="it" for="fVideos"><span data-ic="videoPlus"></span>Adicionar vídeos</label>
@@ -314,7 +321,7 @@ function info(){
   if(inTrash())t=list.length+(list.length===1?' item':' itens');
   else if(tab==='albums'&&!albumOpen)t=albumCount+(albumCount===1?' álbum':' álbuns');
   else if(tab==='videos')t=list.length+(list.length===1?' vídeo':' vídeos');
-  else{t=list.length+(list.length===1?' foto':' fotos');if(albumOpen)t=albumName(albumOpen)+' · '+t}
+  else{t=list.length+(list.length===1?' foto':' fotos')}
   $('#count').textContent=t;
 }
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -368,7 +375,7 @@ function render(){
   const pool=inTrash()?trashItems():all;
   for(const k of [...sel])if(!pool.some(x=>x.key===k))sel.delete(k);
   document.body.classList.toggle('inalb',!!albumOpen);document.body.classList.toggle('intrash',inTrash());
-  $('#ttl').textContent=inTrash()?'Lixeira':'Galeria privada';$('#trashEmpty').hidden=!inTrash();$('#colsBtn').hidden=inTrash();
+  $('#ttl').textContent=inTrash()?'Lixeira':albumOpen?albumName(albumOpen):'Galeria privada';$('#trashEmpty').hidden=!inTrash();$('#colsBtn').hidden=inTrash()||!!albumOpen;$('#menuBtn').hidden=!!albumOpen&&!inTrash();{const ia=!!albumOpen&&!inTrash(),ua=ia&&!!albumOpen.id;$('#albPlay').hidden=!ia;$('#albAdd').hidden=!ua;$('#albMore').hidden=!ua}
   $('#backBtn').hidden=!albumOpen;$('#lockIc').hidden=!!albumOpen;
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   const g=$('#gallery');g.replaceChildren();g.className='';
@@ -420,7 +427,7 @@ function render(){
     if(q){$('#emptyT').textContent='Nada encontrado';$('#emptyP').textContent='Tente outro nome.'}
     else if(inTrash()){$('#emptyT').textContent='Lixeira vazia';$('#emptyP').textContent='O que você apagar fica aqui por 30 dias.'}
     else if(tab==='videos'){$('#emptyT').textContent='Nenhum vídeo ainda';$('#emptyP').textContent='Toque no + e escolha “Adicionar vídeos”.'}
-    else if(albumOpen){$('#emptyT').textContent='Álbum vazio';$('#emptyP').textContent='Segure uma foto, escolha Álbum e coloque aqui.'}
+    else if(albumOpen){$('#emptyT').textContent='Álbum vazio';$('#emptyP').textContent=albumOpen.id?'Toque no + lá em cima para adicionar fotos.':'Ainda não há fotos aqui.'}
     else{$('#emptyT').textContent='Nenhuma foto ainda';$('#emptyP').textContent='Toque no + e escolha “Adicionar fotos”.'}
   }
   info();
@@ -471,7 +478,7 @@ function askConfirm(title,text,yes,fn){$('#selConfirmT').textContent=title;$('#s
 $('#scNo').onclick=()=>{confirmFn=null;$('#selConfirm').hidden=true};
 $('#scYes').onclick=async()=>{$('#selConfirm').hidden=true;const f=confirmFn;confirmFn=null;if(f)await f()};
 let nameFn=null;
-function askName(fn){nameFn=fn;$('#nameIn').value='';$('#nameDlg').hidden=false;setTimeout(()=>$('#nameIn').focus(),50)}
+function askName(fn,init){nameFn=fn;$('#nameIn').value=init||'';$('#nameDlg').hidden=false;setTimeout(()=>{$('#nameIn').focus();if(init)$('#nameIn').select()},50)}
 $('#nmNo').onclick=()=>{nameFn=null;$('#nameDlg').hidden=true};
 $('#nmYes').onclick=()=>{const n=$('#nameIn').value.trim();if(!n){$('#nameIn').focus();return}$('#nameDlg').hidden=true;const f=nameFn;nameFn=null;if(f)f(n)};
 $('#nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('#nmYes').click()});
@@ -489,11 +496,11 @@ function videoMeta(blob){return new Promise(res=>{
   v.onerror=()=>fin(null,0);v.src=url;
 })}
 async function addFiles(files){
-  let np=0,nv=0,skip=0;
+  let np=0,nv=0,skip=0;const keys=[];
   for(const f of files){
     const t=typeOfFile(f),name=(f.name||'foto').replace(/\.[^.]+$/,'');
     const blob=f.type===t?f:new Blob([f],{type:t});
-    if(t.startsWith('image/')){if(await idbAdd({name,blob,lastModified:Date.now()})!==null)np++;else skip++}
+    if(t.startsWith('image/')){const id=await idbAdd({name,blob,lastModified:Date.now()});if(id!==null){np++;keys.push('u:'+id)}else skip++}
     else if(t.startsWith('video/')){const m=await videoMeta(blob);if(await idbAdd({name,blob,media:'video',poster:m.poster,duration:m.duration,lastModified:Date.now()})!==null)nv++;else skip++}
     else skip++;
   }
@@ -501,9 +508,25 @@ async function addFiles(files){
   $('#search').value='';await loadUser();
   const bits=[];if(np)bits.push(np+(np===1?' foto':' fotos'));if(nv)bits.push(nv+(nv===1?' vídeo':' vídeos'));
   toast(bits.length?bits.join(' e ')+' adicionado(s)':'Nenhum arquivo compatível');
-  return {np,nv,skip};
+  return {np,nv,skip,keys};
 }
-for(const id of ['#fPhotos','#fVideos','#fCam'])$(id).onchange=async e=>{const files=[...e.target.files];e.target.value='';if(files.length){toast('Adicionando…');await addFiles(files)}};
+let pendAlb=null;
+for(const id of ['#fPhotos','#fVideos','#fCam'])$(id).onchange=async e=>{
+  const files=[...e.target.files];e.target.value='';const target=pendAlb;pendAlb=null;
+  if(files.length){toast('Adicionando…');const r=await addFiles(files);
+    const al=target&&albums.find(x=>x.id===target);
+    if(al&&r.keys.length){al.keys.push(...r.keys);saveAlbums();render();toast(r.keys.length+(r.keys.length===1?' foto adicionada ao álbum':' fotos adicionadas ao álbum'))}}
+};
+$('#plus').addEventListener('click',()=>{pendAlb=null},true);
+$('#albAdd').onclick=()=>{if(albumOpen&&albumOpen.id){pendAlb=albumOpen.id;$('#fPhotos').click()}};
+$('#albPlay').onclick=()=>{if(!list.some(it=>!isVideo(it))){toast('O álbum não tem fotos');return}ssStart()};
+function closeAlbMenu(){$('#albMenu').hidden=true;$('#albBack').hidden=true}
+$('#albMore').onclick=()=>{$('#albMenu').hidden=false;$('#albBack').hidden=false};
+$('#albBack').onclick=closeAlbMenu;
+$('#albMenu').onclick=e=>{const b=e.target.closest('button');if(!b||!albumOpen||!albumOpen.id)return;closeAlbMenu();const al=albums.find(x=>x.id===albumOpen.id);if(!al)return;
+  ({ren:()=>askName(n=>{al.name=n;saveAlbums();render();toast('Álbum renomeado')},al.name),
+    sel:()=>{selMode=true;document.body.classList.add('sel');refreshSel()},
+    del:()=>askConfirm('Apagar o álbum "'+al.name+'"?','As fotos continuam na galeria.','Apagar',()=>{albums=albums.filter(x=>x.id!==al.id);saveAlbums();albumOpen=null;render();toast('Álbum apagado')})})[b.dataset.a]()};
 
 /* ---------- importar de um ZIP ---------- */
 async function readZip(file){
@@ -1012,6 +1035,7 @@ window.irisBack=()=>{
   if(!$('#nameDlg').hidden){$('#nameDlg').hidden=true;return true}
   if(!$('#albSheet').hidden){closeSheet();return true}
   if(!$('#selConfirm').hidden){$('#selConfirm').hidden=true;return true}
+  if(!$('#albMenu').hidden){closeAlbMenu();return true}
   if(!$('#plusMenu').hidden){closePlus();return true}
   if(selMode){exitSel();return true}
   if(settings.open){settings.close();return true}
