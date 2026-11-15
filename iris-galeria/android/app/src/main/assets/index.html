@@ -124,7 +124,6 @@ body.sel main.g{padding-top:76px}body.sel #top{display:none}
   <button class="it" id="mAlbum"><span data-ic="folderPlus"></span>Criar álbum</button>
   <div class="dv"></div>
   <label class="it" for="fZip"><span data-ic="zip"></span>Importar de um ZIP</label>
-  <button class="it" id="mOnline"><span data-ic="cloud"></span>Baixar fotos novas</button>
 </div>
 
 <div id="selTop" hidden><button id="selCancel" class="icon" aria-label="Cancelar seleção"><span data-ic="x" data-s="24"></span></button><span id="selCount"></span><span style="width:48px"></span></div>
@@ -320,7 +319,6 @@ function render(){
     tile.onclick=()=>{if(fired){fired=false;return}if(selMode)toggleSel(it.key);else openViewer(i)};
     tile.append(img,chk);
     if(vid){const p=document.createElement('span');p.className='play';p.innerHTML=svg('play',22);tile.append(p);if(it.duration){const d=document.createElement('span');d.className='dur';d.textContent=fmtDur(it.duration);tile.append(d)}}
-    else{const f=document.createElement('div');f.className='nm';f.textContent=it.name.replace(/[-_]/g,' ');tile.append(f)}
     if(favs.has(it.key)){const st=document.createElement('span');st.className='star';st.textContent='★';tile.append(st)}
     return tile;
   };
@@ -371,7 +369,6 @@ $('#plus').onclick=()=>{const open=$('#plusMenu').hidden;$('#plusMenu').hidden=!
 $('#plusBack').onclick=closePlus;
 $('#plusMenu').addEventListener('click',()=>setTimeout(closePlus,60));
 $('#mAlbum').onclick=()=>askName(n=>{createAlbum(n,[]);tab='albums';albumOpen=null;render();toast('Álbum criado')});
-$('#mOnline').onclick=()=>{onlineFromMenu()};
 
 /* ---------- encaixe da barra: centraliza a pílula e só desliza se bater no + ---------- */
 function fitBar(){
