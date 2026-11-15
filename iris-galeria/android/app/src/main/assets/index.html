@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#232323"><title>Galeria privada</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#f2f2f2;background:#141414;--bg:#141414;--s1:#232323;--s2:#2b2b2b;--s3:#303030;--bd:#404040;--tx:#f2f2f2;--mut:#9a9a9a;--bar:calc(86px + env(safe-area-inset-bottom))}
+:root{font-family:system-ui,-apple-system,sans-serif;color:#f2f2f2;background:#141414;--bg:#141414;--s1:#232323;--s2:#2b2b2b;--s3:#303030;--bd:#404040;--tx:#f2f2f2;--mut:#9a9a9a;--bar:calc(104px + env(safe-area-inset-bottom))}
 *{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg)}
 svg{display:block;flex:none}p{color:#bdbdbd}small{color:var(--mut)}
 button{border:0;border-radius:13px;padding:12px 16px;background:var(--tx);color:#141414;font-weight:700;cursor:pointer;font-size:1rem;font-family:inherit}
@@ -34,16 +34,16 @@ body.cols4 .nm{display:none}
 .empty{text-align:center;border:1px dashed #555;padding:55px 18px;border-radius:18px;margin:10px 4px}
 /* barra de baixo */
 #bar{position:fixed;left:0;right:0;bottom:0;z-index:30;height:var(--bar);pointer-events:none}
-#pill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:2px;background:var(--s2);border:.5px solid var(--bd);border-radius:999px;padding:4px;height:50px;pointer-events:auto;box-shadow:0 6px 18px #0009}
-#pill button{background:transparent;color:#bdbdbd;border-radius:999px;padding:0 clamp(8px,2.6vw,12px);height:40px;font-size:clamp(11.5px,3.5vw,13.5px);font-weight:500;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+#pill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:2px;background:var(--s2);border:.5px solid var(--bd);border-radius:999px;padding:5px;height:60px;pointer-events:auto;box-shadow:0 6px 18px #0009}
+#pill button{background:transparent;color:#bdbdbd;border-radius:999px;padding:0 clamp(9px,2.8vw,14px);height:50px;font-size:clamp(12.5px,3.9vw,15px);font-weight:500;white-space:nowrap;display:flex;align-items:center;justify-content:center;min-width:0}
 #pill button.on{background:var(--tx);color:#141414;font-weight:700}
-#pill .vs{width:.5px;height:22px;background:#555;margin:0 3px}#pill #searchBtn{padding:0 9px;color:#fff}#pill #searchBtn.on{background:var(--s3);color:#fff}
-#plus{position:absolute;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));width:50px;height:50px;border-radius:50%;padding:0;background:var(--tx);color:#141414;display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 6px 18px #000a;transition:transform .15s}
+#pill .vs{width:.5px;height:26px;background:#555;margin:0 3px}#pill #searchBtn{padding:0 13px;color:#fff}#pill #searchBtn.on{background:var(--s3);color:#fff}
+#plus{position:absolute;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));width:64px;height:64px;border-radius:50%;padding:0;background:var(--tx);color:#141414;display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 6px 18px #000a;transition:transform .15s}
 #plus.open{transform:rotate(45deg)}
 body.sel #bar,body.sel #searchBox{display:none}
-#searchBox{position:fixed;left:14px;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:31}
+#searchBox{position:fixed;left:14px;right:14px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:31}
 #plusBack{position:fixed;inset:0;z-index:32}
-#plusMenu{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));width:260px;z-index:33;background:var(--s2);border:.5px solid var(--bd);border-radius:20px;padding:6px;box-shadow:0 10px 30px #000c}
+#plusMenu{position:fixed;right:14px;bottom:calc(92px + env(safe-area-inset-bottom));width:260px;z-index:33;background:var(--s2);border:.5px solid var(--bd);border-radius:20px;padding:6px;box-shadow:0 10px 30px #000c}
 #plusMenu .it{display:flex;align-items:center;gap:13px;padding:12px 12px;font-size:.98rem;color:var(--tx);border-radius:13px;background:transparent;font-weight:500;width:100%;text-align:left;cursor:pointer}
 #plusMenu .it svg{color:#d0d0d0}#plusMenu .it:active{background:var(--s3)}#plusMenu .dv{height:.5px;background:var(--bd);margin:4px 10px}
 /* banners */
@@ -66,7 +66,7 @@ dialog.full:not([open]){display:none}dialog.full[open]{display:flex;flex-directi
 button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;color:#fff}
 #albList{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:50vh;overflow:auto}#albList button{background:var(--s3);color:var(--tx);text-align:left;display:flex;align-items:center;gap:10px;padding:12px 14px}
 #nameIn{margin-top:12px;border-radius:12px}
-#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--s3);border:1px solid #555;color:#fff;padding:10px 16px;border-radius:999px;z-index:90;max-width:90%;text-align:center;font-size:.95rem}
+#toast{position:fixed;left:50%;bottom:calc(108px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--s3);border:1px solid #555;color:#fff;padding:10px 16px;border-radius:999px;z-index:90;max-width:90%;text-align:center;font-size:.95rem}
 /* editor */
 #ePreview{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px;background:#0b0b0b}#canvas{max-width:100%;max-height:100%;object-fit:contain}
 .tools{padding:10px 14px 16px;background:var(--s1);flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
@@ -75,6 +75,7 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 /* seleção */
 .chk{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#0006;display:none;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:#fff}
 body.sel .chk{display:flex}.tile.sel{outline:3px solid #fff;outline-offset:-3px}.tile.sel .chk{background:#fff;border-color:#fff;color:#141414}.tile.sel img{opacity:.75}
+#selAll{width:34px;height:34px;padding:0;margin-right:8px;border-radius:50%;background:transparent;border:2px solid var(--tx);color:transparent;display:flex;align-items:center;justify-content:center}#selAll.on{background:var(--tx);color:#141414}#selAll svg{stroke-width:3}
 #selTop{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;padding-top:max(34px,env(safe-area-inset-top));background:var(--s1)}
 #selBar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));background:var(--s1);border-top:1px solid var(--bd)}
 #selBar button{background:transparent;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;padding:6px 3px;min-width:52px;font-weight:600}
@@ -94,7 +95,7 @@ body.sel main.g{padding-top:88px}body.sel #top{visibility:hidden}
 #lock{background:var(--bg)}#lock[open]{align-items:center;justify-content:center;text-align:center;padding:24px}
 #lock h1{margin:12px 0 6px;font-weight:600}#lock button{margin-top:14px;min-width:200px}#lock .lic{display:flex;justify-content:center;color:var(--tx)}
 </style></head><body>
-<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1>Galeria privada</h1><span class="sp"></span><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
+<div id="top"><div class="topRow"><button id="backBtn" aria-label="Voltar" hidden><span data-ic="back" data-s="24"></span></button><span id="lockIc"><span data-ic="lock" data-s="22"></span></span><h1>Galeria privada</h1><span class="sp"></span><button id="colsBtn" class="ibtn" aria-label="Colunas da grade"><span data-ic="grid" data-s="20"></span></button><button id="menuBtn" class="ibtn" aria-label="Menu e configurações"><span data-ic="menu" data-s="20"></span></button></div><div id="count"></div></div>
 <main class="g">
 <div id="banner2" class="bannerx" hidden><span id="banner2Text"></span><button id="banner2Btn">Baixar</button></div>
 <div id="banner" hidden><span id="bannerText"></span><button id="bannerBtn">Atualizar agora</button></div>
@@ -107,7 +108,7 @@ body.sel main.g{padding-top:88px}body.sel #top{visibility:hidden}
 </main>
 
 <div id="searchBox" hidden><input id="search" type="search" placeholder="Buscar por nome..."></div>
-<nav id="bar"><div id="pill"><button data-tab="photos" class="on">Fotos</button><button data-tab="videos">Vídeos</button><button data-tab="albums">Álbuns</button><span class="vs"></span><button id="searchBtn" aria-label="Buscar"><span data-ic="search" data-s="20"></span></button></div><button id="plus" aria-label="Adicionar"><span data-ic="plus" data-s="26"></span></button></nav>
+<nav id="bar"><div id="pill"><button data-tab="photos" class="on">Fotos</button><button data-tab="videos">Vídeos</button><button data-tab="albums">Álbuns</button><span class="vs"></span><button id="searchBtn" aria-label="Buscar"><span data-ic="search" data-s="25"></span></button></div><button id="plus" aria-label="Adicionar"><span data-ic="plus" data-s="32"></span></button></nav>
 <div id="plusBack" hidden></div>
 <div id="plusMenu" hidden>
   <label class="it" for="fPhotos"><span data-ic="photoPlus"></span>Adicionar fotos</label>
@@ -119,7 +120,7 @@ body.sel main.g{padding-top:88px}body.sel #top{visibility:hidden}
   <button class="it" id="mOnline"><span data-ic="cloud"></span>Baixar fotos novas</button>
 </div>
 
-<div id="selTop" hidden><button id="selCancel" class="icon" aria-label="Cancelar seleção"><span data-ic="x" data-s="24"></span></button><span id="selCount"></span><button id="selAll" class="secondary">Todas</button></div>
+<div id="selTop" hidden><button id="selCancel" class="icon" aria-label="Cancelar seleção"><span data-ic="x" data-s="24"></span></button><span id="selCount"></span><button id="selAll" aria-label="Selecionar tudo"><span data-ic="check" data-s="18"></span></button></div>
 <div id="selBar" hidden><button id="bEdit"><span data-ic="pencil" data-s="23"></span>Editar</button><button id="bShare"><span data-ic="share" data-s="23"></span>Enviar</button><button id="bFav"><span data-ic="star" data-s="23"></span>Favoritar</button><button id="bSave"><span data-ic="download" data-s="23"></span>Salvar</button><button id="bAlb"><span data-ic="folder" data-s="23"></span>Álbum</button><button id="bDel" class="danger"><span data-ic="trash" data-s="23"></span>Excluir</button></div>
 
 <div id="selConfirm" class="ov" hidden><div><h3 id="selConfirmT" style="margin:0 0 8px"></h3><p id="selConfirmP" style="margin:0"></p><div class="row"><button id="scNo" class="secondary">Cancelar</button><button id="scYes" class="danger"></button></div></div></div>
@@ -136,12 +137,8 @@ body.sel main.g{padding-top:88px}body.sel #top{visibility:hidden}
 <dialog id="settings" class="full">
   <div class="vbar"><button id="sBack" class="icon" aria-label="Voltar"><span data-ic="back" data-s="24"></span></button><span>Configurações</span><span style="width:48px"></span></div>
   <div class="body">
-    <div class="gl">Aparência</div>
-    <div class="card"><div class="rw"><span class="ri" data-ic="grid"></span><div class="rt"><b>Colunas na grade</b><small>Quantas fotos aparecem por linha</small></div></div><div class="seg"><button data-cols="2">2</button><button data-cols="3">3</button><button data-cols="4">4</button></div></div>
     <div id="secSec"><div class="gl">Segurança</div>
     <div class="card"><div class="rw"><span class="ri" data-ic="lock"></span><div class="rt"><b>Bloquear o aplicativo</b><small id="lockState"></small></div><button id="lockBtn" class="sw" role="switch" aria-checked="false" aria-label="Bloquear o aplicativo"><i></i></button></div></div></div>
-    <div class="gl">Fotos online</div>
-    <div class="card" id="onlSec"><div class="rw"><span class="ri" data-ic="cloud"></span><div class="rt"><b>Fotos novas</b><small id="onlInfo">Baixa fotos novas sem precisar instalar outra versão do app.</small></div></div><button id="onlBtn" class="full secondary">Buscar fotos novas</button></div>
     <div id="updSec"><div class="gl">Atualização</div>
     <div class="card"><div class="rw"><span class="ri" data-ic="refresh"></span><div class="rt"><b>Versão do aplicativo</b><small id="updInfo">Toque para ver se há versão nova.</small></div></div><button id="chk" class="full secondary">Buscar atualização</button></div></div>
     <div class="gl">Sobre</div>
@@ -172,6 +169,7 @@ const VERSION=bridge&&bridge.versionName?bridge.versionName():'web';
 const ICONS={
   lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+  check:'<path d="M5 12l5 5 9-10"/>',
   search:'<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
@@ -336,6 +334,15 @@ $('#plusMenu').addEventListener('click',()=>setTimeout(closePlus,60));
 $('#mAlbum').onclick=()=>askName(n=>{createAlbum(n,[]);tab='albums';albumOpen=null;render();toast('Álbum criado')});
 $('#mOnline').onclick=()=>{onlineFromMenu()};
 
+/* ---------- encaixe da barra: centraliza a pílula e só desliza se bater no + ---------- */
+function fitBar(){
+  const pill=$('#pill'),plus=$('#plus');if(!pill||!plus)return;
+  pill.style.transform='translateX(-50%)';
+  const a=pill.getBoundingClientRect(),b=plus.getBoundingClientRect();
+  const over=a.right-(b.left-10);
+  if(over>0){const left=a.left-over;pill.style.transform='translateX(calc(-50% - '+(left<8?over-(8-left):over)+'px))'}
+}
+window.addEventListener('resize',fitBar);setTimeout(fitBar,50);setTimeout(fitBar,600);
 /* ---------- janelinhas de pergunta ---------- */
 let confirmFn=null;
 function askConfirm(title,text,yes,fn){$('#selConfirmT').textContent=title;$('#selConfirmP').textContent=text||'';$('#scYes').textContent=yes||'Excluir';confirmFn=fn;$('#selConfirm').hidden=false}
@@ -501,11 +508,12 @@ function refreshSel(){
   $('#selTop').hidden=$('#selBar').hidden=!selMode;
   $('#selCount').textContent=sel.size+(sel.size===1?' selecionado':' selecionados');
   $('#bEdit').disabled=sel.size!==1;
+  $('#selAll').classList.toggle('on',list.length>0&&list.every(it=>sel.has(it.key)));
   const v=tab==='videos';$('#bEdit').hidden=v;$('#bAlb').hidden=v;
 }
 function exitSel(){sel.clear();selMode=false;document.body.classList.remove('sel');refreshSel()}
 $('#selCancel').onclick=exitSel;
-$('#selAll').onclick=()=>{list.forEach(it=>sel.add(it.key));refreshSel()};
+$('#selAll').onclick=()=>{if(list.length&&list.every(it=>sel.has(it.key)))exitSel();else{list.forEach(it=>sel.add(it.key));refreshSel()}};
 $('#bEdit').onclick=()=>{const it=selItems()[0];exitSel();if(it&&!isVideo(it)){index=Math.max(0,list.findIndex(x=>x.key===it.key));openEditor(it)}};
 function toggleFav(items){
   if(!items.length)return;const all=items.every(it=>favs.has(it.key));
@@ -664,7 +672,7 @@ let onlineDeleted=new Set();
 try{onlineDeleted=new Set(JSON.parse(localStorage.getItem('iris-online-deleted')||'[]'))}catch(e){}
 function saveOnlineDeleted(){try{localStorage.setItem('iris-online-deleted',JSON.stringify([...onlineDeleted]))}catch(e){}}
 let onlinePending=[],onlineBusy=false,onlineManual=false;
-function setOnl(t){$('#onlInfo').textContent=t}
+function setOnl(t){const e=$('#onlInfo');if(e)e.textContent=t}
 async function checkOnline(manual){
   if(onlineBusy)return;onlineManual=!!manual;
   try{
@@ -676,8 +684,8 @@ async function checkOnline(manual){
     onlinePending=man.filter(m=>m&&m.file&&!have.has(m.file)&&!onlineDeleted.has(m.file));
     if(onlinePending.length){
       const t=onlinePending.length+' foto(s) nova(s) disponível(is).';
-      $('#banner2Text').textContent=t;$('#banner2').hidden=false;setOnl(t);$('#onlBtn').textContent='Baixar fotos novas';
-    }else{$('#banner2').hidden=true;setOnl('Você já tem todas as fotos.');$('#onlBtn').textContent='Buscar fotos novas';if(manual)toast('Você já tem todas as fotos')}
+      $('#banner2Text').textContent=t;$('#banner2').hidden=false;setOnl(t);
+    }else{$('#banner2').hidden=true;setOnl('Você já tem todas as fotos.');if(manual)toast('Você já tem todas as fotos')}
   }catch(e){setOnl('Não consegui verificar agora (sem internet?).');if(manual)toast('Não consegui buscar as fotos novas')}
 }
 async function downloadOnline(){
@@ -695,13 +703,12 @@ async function downloadOnline(){
   onlineBusy=false;$('#banner2Btn').hidden=false;$('#banner2').hidden=true;onlinePending=[];
   await loadUser();
   const msg=ok===todo.length?ok+' foto(s) adicionada(s)':ok+' de '+todo.length+' baixadas; tente de novo';
-  setOnl(msg);toast(msg);$('#onlBtn').textContent='Buscar fotos novas';
+  setOnl(msg);toast(msg);
 }
 async function onlineFromMenu(){
   if(onlinePending.length){downloadOnline();return}
   await checkOnline(true);if(onlinePending.length)downloadOnline();
 }
-$('#onlBtn').onclick=()=>{onlineFromMenu()};
 $('#banner2Btn').onclick=downloadOnline;
 setTimeout(()=>checkOnline(false),3000);
 
@@ -715,8 +722,8 @@ function refreshSettings(){
   $('#lockBtn').classList.toggle('on',on);$('#lockBtn').setAttribute('aria-checked',on?'true':'false');
 }
 let cols=2;try{cols=+(localStorage.getItem('iris-cols')||2)||2}catch(e){}
-function applyCols(){document.documentElement.style.setProperty('--cols',cols);document.body.classList.toggle('cols4',cols>=4);document.querySelectorAll('[data-cols]').forEach(b=>b.classList.toggle('on',+b.dataset.cols===cols))}
-document.querySelectorAll('[data-cols]').forEach(b=>b.onclick=()=>{cols=+b.dataset.cols;try{localStorage.setItem('iris-cols',cols)}catch(e){}applyCols()});
+function applyCols(){document.documentElement.style.setProperty('--cols',cols);document.body.classList.toggle('cols4',cols>=4);}
+$('#colsBtn').onclick=()=>{cols=cols>=4?2:cols+1;try{localStorage.setItem('iris-cols',cols)}catch(e){}applyCols()};
 applyCols();
 $('#menuBtn').onclick=()=>{refreshSettings();settings.showModal()};
 $('#sBack').onclick=()=>settings.close();

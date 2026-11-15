@@ -9,6 +9,10 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.os.Build;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -40,6 +44,8 @@ public class MainActivity extends Activity {
         locked = isLockEnabled() && isDeviceSecure();
         webView = new WebView(this);
         setContentView(webView);
+        webView.setBackgroundColor(0xFF141414);
+        darkBars();
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -73,6 +79,28 @@ public class MainActivity extends Activity {
                             }
                         }
                     }
+                    boolean multi = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+                    String only = mimes.size() == 1 ? mimes.get(0) : "";
+                    boolean media = only.equals("image/*") || only.equals("video/*");
+                    if (media) {
+                        // Fotos e vídeos: abre a galeria do celular.
+                        Intent g;
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            g = new Intent(MediaStore.ACTION_PICK_IMAGES);
+                            if (multi) g.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
+                        } else {
+                            g = new Intent(Intent.ACTION_GET_CONTENT);
+                            g.addCategory(Intent.CATEGORY_OPENABLE);
+                            g.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multi);
+                        }
+                        g.setType(only);
+                        try {
+                            startActivityForResult(g, PICK_IMAGES);
+                            return true;
+                        } catch (Exception noGallery) {
+                            // sem galeria disponível: cai no seletor de arquivos
+                        }
+                    }
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                     if (mimes.size() == 1) intent.setType(mimes.get(0));
@@ -80,7 +108,7 @@ public class MainActivity extends Activity {
                         intent.setType("*/*");
                         if (mimes.size() > 1) intent.putExtra(Intent.EXTRA_MIME_TYPES, mimes.toArray(new String[0]));
                     }
-                    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multi);
                     startActivityForResult(intent, PICK_IMAGES);
                 } catch (Exception e) {
                     fileCallback.onReceiveValue(null);
@@ -91,6 +119,28 @@ public class MainActivity extends Activity {
             }
         });
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    /** Barras do celular (de cima e de baixo) no grafite da galeria, com ícones claros. */
+    @SuppressWarnings("deprecation")
+    private void darkBars() {
+        try {
+            Window w = getWindow();
+            w.setStatusBarColor(0xFF232323);
+            w.setNavigationBarColor(0xFF141414);
+            if (Build.VERSION.SDK_INT >= 29) w.setNavigationBarContrastEnforced(false);
+            if (Build.VERSION.SDK_INT >= 30) {
+                WindowInsetsController c = w.getInsetsController();
+                if (c != null) c.setSystemBarsAppearance(0,
+                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+            } else {
+                View d = w.getDecorView();
+                int f = d.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                if (Build.VERSION.SDK_INT >= 26) f &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                d.setSystemUiVisibility(f);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /** Abre a câmera do celular e devolve a foto tirada para a página. */
