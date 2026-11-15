@@ -2,6 +2,7 @@ package com.iris.galeria;
 
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -27,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -129,6 +131,83 @@ public class IrisBridge {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    /* ---------------------------- compartilhar ---------------------------- */
+
+    private final ArrayList<Uri> shareUris = new ArrayList<>();
+
+    /** Começa um novo compartilhamento: limpa a pasta temporária. */
+    @JavascriptInterface
+    public synchronized void shareBegin() {
+        shareUris.clear();
+        File[] old = IrisShareProvider.dir(context).listFiles();
+        if (old != null) for (File f : old) f.delete();
+    }
+
+    @JavascriptInterface
+    public synchronized boolean shareAsset(String path, String name) {
+        byte[] data = readAssetBytes(path);
+        if (data == null) return false;
+        String lower = path.toLowerCase();
+        String ext = lower.endsWith(".webp") ? ".webp" : lower.endsWith(".png") ? ".png" : ".jpg";
+        return addShare(data, cleanName(name) + ext);
+    }
+
+    @JavascriptInterface
+    public synchronized boolean shareImage(String base64, String name, String mime) {
+        try {
+            byte[] data = Base64.decode(base64, Base64.DEFAULT);
+            String ext = "image/webp".equals(mime) ? ".webp" : "image/png".equals(mime) ? ".png" : ".jpg";
+            return addShare(data, cleanName(name) + ext);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean addShare(byte[] data, String fileName) {
+        try {
+            File dir = IrisShareProvider.dir(context);
+            File f = new File(dir, fileName);
+            int k = 2;
+            while (f.exists()) {
+                int dot = fileName.lastIndexOf('.');
+                f = new File(dir, fileName.substring(0, dot) + " (" + k++ + ")" + fileName.substring(dot));
+            }
+            try (FileOutputStream out = new FileOutputStream(f)) {
+                out.write(data);
+            }
+            shareUris.add(new Uri.Builder().scheme("content")
+                    .authority(IrisShareProvider.AUTHORITY).appendPath(f.getName()).build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Abre o seletor de compartilhamento do Android com as fotos adicionadas. */
+    @JavascriptInterface
+    public synchronized boolean shareSend() {
+        if (shareUris.isEmpty()) return false;
+        final ArrayList<Uri> uris = new ArrayList<>(shareUris);
+        activity.runOnUiThread(() -> {
+            try {
+                Intent i = uris.size() == 1 ? new Intent(Intent.ACTION_SEND) : new Intent(Intent.ACTION_SEND_MULTIPLE);
+                i.setType("image/*");
+                if (uris.size() == 1) i.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+                else i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+                ClipData clip = ClipData.newRawUri("", uris.get(0));
+                for (int n = 1; n < uris.size(); n++) clip.addItem(new ClipData.Item(uris.get(n)));
+                i.setClipData(clip);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent chooser = Intent.createChooser(i, "Compartilhar fotos");
+                chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                activity.markExternal();
+                activity.startActivity(chooser);
+            } catch (Exception ignored) {
+            }
+        });
+        return true;
     }
 
     /* ------------------------------ bloqueio ------------------------------ */

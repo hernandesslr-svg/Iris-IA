@@ -8,7 +8,7 @@ button,.upload{border:0;border-radius:13px;padding:12px 16px;background:#a55df5;
 button.secondary{background:#30253e}input[type=file]{display:none}
 input[type=search]{background:#241a32;border:1px solid #55436d;border-radius:12px;color:#fff;padding:12px;flex:1;min-width:160px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
-.tile{background:#241a32;border-radius:15px;overflow:hidden}.tile img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer}
+.tile{background:#241a32;border-radius:15px;overflow:hidden;position:relative;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.tile img{-webkit-touch-callout:none;-webkit-user-drag:none}.tile img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer}
 .tile footer{padding:9px;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .empty{text-align:center;border:1px dashed #6b527e;padding:55px 18px;border-radius:18px}small{color:#b8aac8}
 dialog.full{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:#000;color:#fff;overflow:hidden}
@@ -26,7 +26,7 @@ dialog::backdrop{background:#000}
 #confirm{position:absolute;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:10;padding:24px}
 #confirm div{background:#241a32;border:1px solid #55436d;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #confirm .row{display:flex;gap:10px;justify-content:center;margin-top:14px}#confirm .danger{background:#d6405a}
-#toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:#30253e;border:1px solid #725b90;color:#fff;padding:10px 16px;border-radius:999px;z-index:20;max-width:90%;text-align:center;font-size:.95rem}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#30253e;border:1px solid #725b90;color:#fff;padding:10px 16px;border-radius:999px;z-index:20;max-width:90%;text-align:center;font-size:.95rem}
 #ePreview{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px;background:#0b0713}
 #canvas{max-width:100%;max-height:100%;object-fit:contain}
 .tools{padding:10px 14px 16px;background:#120c1d;flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
@@ -41,6 +41,16 @@ header{position:relative}
 #lock{background:linear-gradient(160deg,#342052,#100b1c)}
 #lock[open]{align-items:center;justify-content:center;text-align:center;padding:24px}
 #lock h1{margin:0 0 6px}#lock button{margin-top:14px;min-width:200px}
+.chk{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#0006;display:none;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:#fff}
+body.sel .chk{display:flex}.tile.sel{outline:3px solid #a55df5;outline-offset:-3px}.tile.sel .chk{background:#a55df5;border-color:#a55df5}.tile.sel img{opacity:.75}
+body.sel main{padding-bottom:110px}
+#selTop{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;padding-top:max(34px,env(safe-area-inset-top));background:#120c1d;border-bottom:1px solid #3d2e55}
+#selBar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:#120c1d;border-top:1px solid #3d2e55}
+#selBar button{background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.78rem;padding:6px 8px;min-width:68px}
+#selBar button span{font-size:1.45rem;line-height:1}#selBar button:disabled{opacity:.35}#selBar .danger{color:#ff8a9d}
+#selConfirm{position:fixed;inset:0;z-index:60;background:#000c;display:flex;align-items:center;justify-content:center;padding:24px}
+#selConfirm>div{background:#241a32;border:1px solid #55436d;border-radius:16px;padding:20px;max-width:340px;text-align:center}
+#selConfirm .row{display:flex;gap:10px;justify-content:center;margin-top:14px}#selConfirm .danger{background:#d6405a;color:#fff}
 </style></head><body>
 <header><button id="menuBtn" aria-label="Menu e configurações">☰</button><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste aparelho.</p></main></header>
 <main>
@@ -52,9 +62,13 @@ header{position:relative}
 <div id="empty" class="empty" hidden><h2>Seu álbum está vazio 💜</h2><p>Toque em “Adicionar fotos” para importar imagens.</p><small>Use apenas fotos que você tem direito de armazenar.</small></div>
 </main>
 
+<div id="selTop" hidden><button id="selCancel" class="icon" aria-label="Cancelar seleção">✕</button><span id="selCount"></span><button id="selAll" class="secondary">Todas</button></div>
+<div id="selBar" hidden><button id="bEdit"><span>✎</span>Editar</button><button id="bShare"><span>⤴</span>Compartilhar</button><button id="bSave"><span>⬇</span>Salvar</button><button id="bDel" class="danger"><span>🗑</span>Excluir</button></div>
+<div id="selConfirm" hidden><div><h3 id="selConfirmT" style="margin:0 0 8px"></h3><p style="margin:0">Elas somem da galeria.</p><div class="row"><button id="scNo" class="secondary">Cancelar</button><button id="scYes" class="danger">Excluir</button></div></div></div>
+
 <dialog id="viewer" class="full">
   <button id="more" aria-label="Mais opções">⋮</button>
-  <div id="menu" hidden><button data-a="edit">✎&nbsp; Editar</button><button data-a="save">⬇&nbsp; Salvar no celular</button><button data-a="del" class="danger">🗑&nbsp; Apagar</button></div>
+  <div id="menu" hidden><button data-a="edit">✎&nbsp; Editar</button><button data-a="share">⤴&nbsp; Compartilhar</button><button data-a="save">⬇&nbsp; Salvar no celular</button><button data-a="del" class="danger">🗑&nbsp; Apagar</button></div>
   <div id="stage"><img id="full" alt=""></div>
   <div id="confirm" hidden><div><h3 style="margin:0 0 8px">Apagar esta foto?</h3><p style="margin:0">Ela some da galeria.</p><div class="row"><button id="cNo" class="secondary">Cancelar</button><button id="cYes" class="danger">Apagar</button></div></div></div>
 </dialog>
@@ -94,6 +108,7 @@ let hiddenSet=new Set();
 try{hiddenSet=new Set(JSON.parse(localStorage.getItem('iris-hidden')||'[]'))}catch(e){}
 function saveHidden(){try{localStorage.setItem('iris-hidden',JSON.stringify([...hiddenSet]))}catch(e){}}
 const bundled=(window.IRIS_FOTOS||[]).map(it=>({key:'b:'+it.file,kind:'b',name:it.name,file:it.file}));
+const sel=new Set();let selMode=false;
 function userItems(){return userPhotos.slice().reverse().map(p=>({key:'u:'+p.id,kind:'u',id:p.id,name:p.name,blob:p.blob,onlineKey:p.onlineKey}))}
 function allItems(){return userItems().concat(bundled.filter(b=>!hiddenSet.has(b.key)))}
 function srcOf(it){if(it.kind==='b')return 'fotos/'+it.file;let u=urls.get(it.key);if(!u){u=URL.createObjectURL(it.blob);urls.set(it.key,u)}return u}
@@ -102,13 +117,23 @@ function render(){
   const q=$('#search').value.trim().toLowerCase();failed=0;
   const all=allItems();list=all.filter(it=>it.name.toLowerCase().includes(q));
   const g=$('#gallery');g.replaceChildren();
+  for(const k of [...sel])if(!all.some(x=>x.key===k))sel.delete(k);
   list.forEach((it,i)=>{
-    const tile=document.createElement('article');tile.className='tile';
-    const img=document.createElement('img');img.alt=it.name;img.loading='lazy';img.src=srcOf(it);
-    img.onerror=()=>{failed++;info()};img.onclick=()=>openViewer(i);
+    const tile=document.createElement('article');tile.className='tile';tile.dataset.key=it.key;if(sel.has(it.key))tile.classList.add('sel');
+    const img=document.createElement('img');img.alt=it.name;img.loading='lazy';img.src=srcOf(it);img.draggable=false;
+    img.onerror=()=>{failed++;info()};
+    const chk=document.createElement('span');chk.className='chk';chk.textContent='✓';
+    let timer=null,fired=false,mx=0,my=0;
+    tile.addEventListener('touchstart',e=>{fired=false;mx=e.touches[0].clientX;my=e.touches[0].clientY;clearTimeout(timer);timer=setTimeout(()=>{fired=true;try{navigator.vibrate&&navigator.vibrate(25)}catch(_){}toggleSel(it.key,true)},450)},{passive:true});
+    tile.addEventListener('touchmove',e=>{if(Math.abs(e.touches[0].clientX-mx)>10||Math.abs(e.touches[0].clientY-my)>10)clearTimeout(timer)},{passive:true});
+    tile.addEventListener('touchend',e=>{clearTimeout(timer);if(fired)e.preventDefault()});
+    tile.addEventListener('touchcancel',()=>clearTimeout(timer));
+    tile.addEventListener('contextmenu',e=>e.preventDefault());
+    tile.onclick=()=>{if(fired){fired=false;return}if(selMode)toggleSel(it.key);else openViewer(i)};
     const f=document.createElement('footer');f.textContent=it.name.replace(/[-_]/g,' ');
-    tile.append(img,f);g.append(tile);
+    tile.append(img,chk,f);g.append(tile);
   });
+  refreshSel();
   $('#empty').hidden=all.length>0;info();
 }
 function loadUser(){return new Promise(res=>{if(!db){res();return}const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>{userPhotos=r.result;render();res()};r.onerror=()=>res()})}
@@ -178,14 +203,49 @@ stage.addEventListener('touchend',e=>{
 stage.onclick=()=>{menu.hidden=true};
 document.addEventListener('keydown',e=>{if(!viewer.open||editor.open)return;if(e.key==='ArrowLeft')slide(-1);if(e.key==='ArrowRight')slide(1)});
 $('#more').onclick=e=>{e.stopPropagation();menu.hidden=!menu.hidden};
-menu.onclick=e=>{const b=e.target.closest('button');if(!b)return;menu.hidden=true;({edit:openEditor,save:saveCurrent,del:()=>{$('#confirm').hidden=false}})[b.dataset.a]()};
+menu.onclick=e=>{const b=e.target.closest('button');if(!b)return;menu.hidden=true;({edit:()=>openEditor(),share:()=>shareItems([list[index]]),save:saveCurrent,del:()=>{$('#confirm').hidden=false}})[b.dataset.a]()};
+
+/* ---------- seleção de várias fotos ---------- */
+function selItems(){return allItems().filter(it=>sel.has(it.key))}
+function toggleSel(key,force){
+  if(force&&!selMode){selMode=true;document.body.classList.add('sel')}
+  if(force)sel.add(key);else if(sel.has(key))sel.delete(key);else sel.add(key);
+  if(!sel.size){exitSel();return}
+  refreshSel();
+}
+function refreshSel(){
+  document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('sel',sel.has(t.dataset.key)));
+  $('#selTop').hidden=$('#selBar').hidden=!selMode;
+  $('#selCount').textContent=sel.size+' selecionada(s)';
+  $('#bEdit').disabled=sel.size!==1;
+}
+function exitSel(){sel.clear();selMode=false;document.body.classList.remove('sel');refreshSel()}
+$('#selCancel').onclick=exitSel;
+$('#selAll').onclick=()=>{list.forEach(it=>sel.add(it.key));refreshSel()};
+$('#bEdit').onclick=()=>{const it=selItems()[0];exitSel();if(it){index=Math.max(0,list.findIndex(x=>x.key===it.key));openEditor(it)}};
+$('#bShare').onclick=async()=>{const items=selItems();exitSel();await shareItems(items)};
+$('#bSave').onclick=async()=>{
+  const items=selItems();exitSel();toast('Salvando…');let ok=0,where='';
+  for(const it of items){const w=await saveItem(it);if(w){ok++;where=w}}
+  toast(ok?ok+' foto(s) salva(s) em '+where:'Não foi possível salvar');
+};
+$('#bDel').onclick=()=>{$('#selConfirmT').textContent='Excluir '+sel.size+' foto(s)?';$('#selConfirm').hidden=false};
+$('#scNo').onclick=()=>{$('#selConfirm').hidden=true};
+$('#scYes').onclick=async()=>{
+  $('#selConfirm').hidden=true;const items=selItems();exitSel();
+  for(const it of items)await removeItem(it);
+  render();toast(items.length+' foto(s) apagada(s)');
+};
 
 /* ---------- apagar ---------- */
+async function removeItem(it){
+  if(it.kind==='b'){hiddenSet.add(it.key);saveHidden()}
+  else{if(it.onlineKey){onlineDeleted.add(it.onlineKey);saveOnlineDeleted()}await idbDelete(it.id);userPhotos=userPhotos.filter(p=>p.id!==it.id);const u=urls.get(it.key);if(u){URL.revokeObjectURL(u);urls.delete(it.key)}}
+}
 $('#cNo').onclick=()=>{$('#confirm').hidden=true};
 $('#cYes').onclick=async()=>{
   $('#confirm').hidden=true;const it=list[index];if(!it)return;
-  if(it.kind==='b'){hiddenSet.add(it.key);saveHidden()}
-  else{if(it.onlineKey){onlineDeleted.add(it.onlineKey);saveOnlineDeleted()}await idbDelete(it.id);userPhotos=userPhotos.filter(p=>p.id!==it.id);const u=urls.get(it.key);if(u){URL.revokeObjectURL(u);urls.delete(it.key)}}
+  await removeItem(it);
   render();
   if(!list.length){viewer.close();return}
   index=Math.min(index,list.length-1);show();toast('Foto apagada');
@@ -200,25 +260,34 @@ async function blobOf(it){
   if(bridge){const b64=bridge.readAsset(path);if(!b64)throw new Error('asset');const bin=atob(b64),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type})}
   return (await fetch(path)).blob();
 }
-async function saveCurrent(){
-  const it=list[index];if(!it)return;
+async function saveItem(it){
   try{
     if(bridge){
-      let where='';
-      if(it.kind==='b')where=bridge.saveAsset('fotos/'+it.file,it.name);
-      else where=bridge.saveImage(await b64FromBlob(it.blob),it.name,it.blob.type||'image/jpeg');
-      toast(where?'Salva em '+where:'Não foi possível salvar');
-    }else{
-      const blob=await blobOf(it),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=it.name+extOf(blob.type);document.body.append(a);a.click();a.remove();toast('Download iniciado');
+      if(it.kind==='b')return bridge.saveAsset('fotos/'+it.file,it.name)||'';
+      return bridge.saveImage(await b64FromBlob(it.blob),it.name,it.blob.type||'image/jpeg')||'';
     }
-  }catch(e){toast('Não foi possível salvar')}
+    const blob=await blobOf(it),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=it.name+extOf(blob.type);document.body.append(a);a.click();a.remove();return 'Downloads';
+  }catch(e){return ''}
+}
+async function saveCurrent(){const it=list[index];if(!it)return;const w=await saveItem(it);toast(w?'Salva em '+w:'Não foi possível salvar')}
+async function shareItems(items){
+  if(!items.length)return;
+  if(!bridge||!bridge.shareBegin){toast('Compartilhar só funciona no app');return}
+  try{
+    bridge.shareBegin();let n=0;
+    for(const it of items){
+      const ok=it.kind==='b'?bridge.shareAsset('fotos/'+it.file,it.name):bridge.shareImage(await b64FromBlob(it.blob),it.name,it.blob.type||'image/jpeg');
+      if(ok)n++;
+    }
+    if(!n||!bridge.shareSend())toast('Não foi possível compartilhar');
+  }catch(e){toast('Não foi possível compartilhar')}
 }
 
 /* ---------- editar ---------- */
 let ed=null;
 function syncControls(){$('#sBri').value=ed.bri;$('#sCon').value=ed.con;$('#sSat').value=ed.sat;$('#bw').classList.toggle('on',ed.bw);$('#flip').classList.toggle('on',ed.flip)}
-async function openEditor(){
-  const it=list[index];if(!it)return;
+async function openEditor(it){
+  it=it||list[index];if(!it)return;
   try{
     const url=URL.createObjectURL(await blobOf(it)),img=new Image();
     await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
@@ -262,7 +331,7 @@ $('#eSave').onclick=()=>{
 /* ---------- bloqueio com a senha do celular ---------- */
 function showLock(){
   if(viewer.open)viewer.close();if(editor.open)closeEditor();if(settings.open)settings.close();
-  $('#confirm').hidden=true;if(!lockDlg.open)lockDlg.showModal();
+  $('#confirm').hidden=true;$('#selConfirm').hidden=true;exitSel();if(!lockDlg.open)lockDlg.showModal();
 }
 window.irisLock=()=>{if(bridge&&bridge.lockEnabled())showLock()};
 lockDlg.addEventListener('cancel',e=>e.preventDefault());
@@ -353,6 +422,8 @@ if(bridge&&bridge.isLocked())showLock();
 
 window.irisBack=()=>{
   if(lockDlg.open)return false;
+  if(!$('#selConfirm').hidden){$('#selConfirm').hidden=true;return true}
+  if(selMode){exitSel();return true}
   if(settings.open){settings.close();return true}
   if(!$('#confirm').hidden){$('#confirm').hidden=true;return true}
   if(editor.open){closeEditor();return true}

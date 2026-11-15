@@ -69,6 +69,9 @@ public class MainActivity extends Activity {
         return km != null && km.isDeviceSecure();
     }
 
+    /** Evita travar o app quando o usuário sai só para compartilhar uma foto. */
+    public void markExternal() { pickingFile = true; }
+
     public boolean isLockedNow() { return locked; }
 
     /** purpose: "unlock", "enable" ou "disable". Abre a tela de senha/padrão/digital do celular. */
@@ -99,6 +102,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        pickingFile = false;
         if (!locked) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if (skipNextPrompt) { skipNextPrompt = false; return; }
         if (locked && !authenticating) requestAuth("unlock");
