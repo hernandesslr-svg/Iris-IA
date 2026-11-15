@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         webView.setWebViewClient(new WebViewClient());
+        webView.addJavascriptInterface(new IrisBridge(this), "IrisAndroid");
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
@@ -55,7 +56,9 @@ public class MainActivity extends Activity {
         fileCallback = null;
     }
     @Override public void onBackPressed() {
-        if (webView.canGoBack()) webView.goBack(); else super.onBackPressed();
+        webView.evaluateJavascript("(window.irisBack ? window.irisBack() : false)", value -> {
+            if (!"true".equals(value)) MainActivity.super.onBackPressed();
+        });
     }
     @Override protected void onDestroy() { webView.destroy(); super.onDestroy(); }
 }

@@ -1,29 +1,215 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#171024"><title>Iris Galeria</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#171024"><title>Iris Galeria</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#f9f4ff;background:#100b1c}*{box-sizing:border-box}body{margin:0}header{padding:26px 18px 16px;background:linear-gradient(135deg,#342052,#171024)}h1{margin:0;font-size:2rem}p{color:#c9bcd8}main{max-width:1050px;margin:auto;padding:18px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}button,.upload{border:0;border-radius:13px;padding:12px 16px;background:#a55df5;color:white;font-weight:700;cursor:pointer}button.secondary{background:#30253e}input[type=file]{display:none}input[type=search]{background:#241a32;border:1px solid #55436d;border-radius:12px;color:white;padding:12px;flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}.tile{background:#241a32;border-radius:15px;overflow:hidden;position:relative}.tile img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer}.tile footer{padding:9px;font-size:.85rem;display:flex;justify-content:space-between;align-items:center;gap:5px}.tile footer button{padding:5px 8px;background:#4b365d}.empty{text-align:center;border:1px dashed #6b527e;padding:55px 18px;border-radius:18px}dialog{background:#100b1c;border:1px solid #725b90;border-radius:16px;color:white;max-width:96vw;max-height:96vh;padding:12px}dialog::backdrop{background:#000d}dialog img{display:block;max-width:85vw;max-height:75vh;object-fit:contain;margin:auto}.viewer-actions{display:flex;justify-content:center;gap:8px;margin-top:10px}small{color:#b8aac8}
-</style></head><body><header><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste navegador.</p></main></header><main><div class="toolbar"><label class="upload" for="files">＋ Adicionar fotos</label><input id="files" type="file" accept="image/*" multiple><input id="search" type="search" placeholder="Buscar por nome..."><button id="all" class="secondary">Todas</button></div><section aria-label="Álbum de fotos" style="margin:16px 0 24px"><h2>Personagens · Fotos individuais</h2><p id="info">Imagens individuais incluídas diretamente neste aplicativo.</p><div id="bundled" class="grid"></div></section><div id="gallery" class="grid"></div><div id="empty" class="empty"><h2>Seu álbum começa aqui 💜</h2><p>Adicione fotos da Tsunade ou de outras personagens para montar a galeria.</p><small>Sem imagens pré-instaladas. Use apenas fotos que você tem direito de armazenar.</small></div></main><dialog id="viewer"><img id="full" alt="Foto ampliada"><div class="viewer-actions"><button id="prev" class="secondary">← Anterior</button><button id="close">Fechar</button><button id="next" class="secondary">Próxima →</button></div></dialog>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#f9f4ff;background:#100b1c}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}
+header{padding:26px 18px 16px;background:linear-gradient(135deg,#342052,#171024)}h1{margin:0;font-size:2rem}p{color:#c9bcd8}
+main{max-width:1050px;margin:auto;padding:18px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+button,.upload{border:0;border-radius:13px;padding:12px 16px;background:#a55df5;color:#fff;font-weight:700;cursor:pointer;font-size:1rem}
+button.secondary{background:#30253e}input[type=file]{display:none}
+input[type=search]{background:#241a32;border:1px solid #55436d;border-radius:12px;color:#fff;padding:12px;flex:1;min-width:160px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.tile{background:#241a32;border-radius:15px;overflow:hidden}.tile img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer}
+.tile footer{padding:9px;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{text-align:center;border:1px dashed #6b527e;padding:55px 18px;border-radius:18px}small{color:#b8aac8}
+dialog.full{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:#000;color:#fff;overflow:hidden}
+dialog.full:not([open]){display:none}dialog.full[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:#000}
+.vbar{display:flex;align-items:center;justify-content:space-between;padding:8px 8px 8px;padding-top:max(34px,env(safe-area-inset-top));background:#120c1d;z-index:2;flex:none}
+.icon{background:transparent;font-size:1.7rem;padding:4px 14px;line-height:1.1}
+.vbar span{color:#d8cde8;font-size:1rem}
+#stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;min-height:0}
+#full{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;pointer-events:none}
+#more{position:absolute;top:max(34px,env(safe-area-inset-top));right:10px;z-index:5;width:46px;height:46px;padding:0;border-radius:50%;background:#0008;font-size:1.7rem;line-height:1}
+#menu{position:absolute;top:calc(max(34px,env(safe-area-inset-top)) + 54px);right:10px;background:#241a32;border:1px solid #55436d;border-radius:14px;padding:6px;z-index:6;min-width:220px;box-shadow:0 8px 24px #000a}
+#menu button{display:block;width:100%;text-align:left;background:transparent;padding:14px;font-weight:600}
+#menu button.danger{color:#ff8a9d}
+#confirm{position:absolute;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:10;padding:24px}
+#confirm div{background:#241a32;border:1px solid #55436d;border-radius:16px;padding:20px;max-width:340px;text-align:center}
+#confirm .row{display:flex;gap:10px;justify-content:center;margin-top:14px}#confirm .danger{background:#d6405a}
+#toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:#30253e;border:1px solid #725b90;color:#fff;padding:10px 16px;border-radius:999px;z-index:20;max-width:90%;text-align:center;font-size:.95rem}
+#ePreview{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px;background:#0b0713}
+#canvas{max-width:100%;max-height:100%;object-fit:contain}
+.tools{padding:10px 14px 16px;background:#120c1d;flex:none}.tools .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.tools .row button{padding:9px 12px;font-size:.9rem}.tools .on{background:#a55df5}
+.tools label{display:flex;align-items:center;gap:10px;margin:6px 0;color:#d8cde8;font-size:.95rem}.tools label b{width:84px;font-weight:600}.tools input[type=range]{flex:1;accent-color:#a55df5}
+</style></head><body>
+<header><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste aparelho.</p></main></header>
+<main>
+<div class="toolbar"><label class="upload" for="files">＋ Adicionar fotos</label><input id="files" type="file" accept="image/*" multiple><input id="search" type="search" placeholder="Buscar por nome..."><button id="all" class="secondary">Todas</button></div>
+<p id="info"></p>
+<div id="gallery" class="grid"></div>
+<div id="empty" class="empty" hidden><h2>Seu álbum está vazio 💜</h2><p>Toque em “Adicionar fotos” para importar imagens.</p><small>Use apenas fotos que você tem direito de armazenar.</small></div>
+</main>
+
+<dialog id="viewer" class="full">
+  <button id="more" aria-label="Mais opções">⋮</button>
+  <div id="menu" hidden><button data-a="edit">✎&nbsp; Editar</button><button data-a="save">⬇&nbsp; Salvar no celular</button><button data-a="del" class="danger">🗑&nbsp; Apagar</button></div>
+  <div id="stage"><img id="full" alt=""></div>
+  <div id="confirm" hidden><div><h3 style="margin:0 0 8px">Apagar esta foto?</h3><p style="margin:0">Ela some da galeria.</p><div class="row"><button id="cNo" class="secondary">Cancelar</button><button id="cYes" class="danger">Apagar</button></div></div></div>
+</dialog>
+
+<dialog id="editor" class="full">
+  <div class="vbar"><button id="eCancel" class="icon" aria-label="Cancelar">✕</button><span>Editar foto</span><button id="eSave">Salvar</button></div>
+  <div id="ePreview"><canvas id="canvas"></canvas></div>
+  <div class="tools">
+    <div class="row"><button id="rotL" class="secondary">⟲ Girar</button><button id="rotR" class="secondary">⟳ Girar</button><button id="flip" class="secondary">⇋ Espelhar</button><button id="bw" class="secondary">Preto e branco</button><button id="eReset" class="secondary">Redefinir</button></div>
+    <label><b>Brilho</b><input type="range" id="sBri" min="40" max="160" value="100"></label>
+    <label><b>Contraste</b><input type="range" id="sCon" min="40" max="160" value="100"></label>
+    <label><b>Saturação</b><input type="range" id="sSat" min="0" max="200" value="100"></label>
+  </div>
+</dialog>
+
 <script src="fotos/manifest.js"></script>
 <script>
-const dbName='iris-galeria-v1',store='photos';let db,photos=[],filtered=[],index=0,category='',bundledCount=0;const $=s=>document.querySelector(s);
-Promise.resolve(window.IRIS_FOTOS||[]).then(items=>{
-  bundledCount=items.length;let ok=0,fail=0;const info=()=>{$('#info').textContent='Versão 1.1 · manifesto: '+items.length+' · carregadas: '+ok+' · com erro: '+fail};info();
-  for(const item of items){
+const $=s=>document.querySelector(s);
+const VERSION='1.2';
+const bridge=window.IrisAndroid||null;
+const dbName='iris-galeria-v1',store='photos';
+let db=null,userPhotos=[],list=[],index=0,failed=0;
+const urls=new Map();
+let hiddenSet=new Set();
+try{hiddenSet=new Set(JSON.parse(localStorage.getItem('iris-hidden')||'[]'))}catch(e){}
+function saveHidden(){try{localStorage.setItem('iris-hidden',JSON.stringify([...hiddenSet]))}catch(e){}}
+const bundled=(window.IRIS_FOTOS||[]).map(it=>({key:'b:'+it.file,kind:'b',name:it.name,file:it.file}));
+function userItems(){return userPhotos.slice().reverse().map(p=>({key:'u:'+p.id,kind:'u',id:p.id,name:p.name,blob:p.blob}))}
+function allItems(){return userItems().concat(bundled.filter(b=>!hiddenSet.has(b.key)))}
+function srcOf(it){if(it.kind==='b')return 'fotos/'+it.file;let u=urls.get(it.key);if(!u){u=URL.createObjectURL(it.blob);urls.set(it.key,u)}return u}
+function info(){$('#info').textContent='Versão '+VERSION+' · '+list.length+' foto(s)'+(failed?' · '+failed+' com erro':'')}
+function render(){
+  const q=$('#search').value.trim().toLowerCase();failed=0;
+  const all=allItems();list=all.filter(it=>it.name.toLowerCase().includes(q));
+  const g=$('#gallery');g.replaceChildren();
+  list.forEach((it,i)=>{
     const tile=document.createElement('article');tile.className='tile';
-    const img=document.createElement('img');img.alt=item.name;img.loading='lazy';img.src='fotos/'+item.file;
-    img.onload=()=>{ok++;info()};img.onerror=()=>{fail++;info();tile.remove();bundledCount=Math.max(0,bundledCount-1);render()};
-    img.onclick=()=>{const d=document.createElement('a');d.href=img.src;d.target='_blank';d.click()};
-    const footer=document.createElement('footer');footer.textContent=item.name.replace(/[-_]/g,' ');
-    tile.append(img,footer);$('#bundled').append(tile);
-  }
-  $('#empty').hidden=bundledCount>0;
-}).catch(err=>console.error('Não foi possível carregar as fotos incluídas:',err));
-const request=indexedDB.open(dbName,1);request.onupgradeneeded=()=>request.result.createObjectStore(store,{keyPath:'id',autoIncrement:true});request.onsuccess=()=>{db=request.result;refresh()};request.onerror=()=>alert('Não foi possível abrir o armazenamento de fotos.');
-function transaction(mode){return db.transaction(store,mode).objectStore(store)}
-function refresh(){const r=transaction('readonly').getAll();r.onsuccess=()=>{photos=r.result;render()}}
-function render(){const q=$('#search').value.toLowerCase();filtered=photos.filter(p=>(!category||p.name.toLowerCase().includes(category))&&p.name.toLowerCase().includes(q));$('#gallery').replaceChildren();$('#empty').hidden=filtered.length>0||bundledCount>0;for(const p of filtered){const tile=document.createElement('article');tile.className='tile';const img=document.createElement('img');img.src=URL.createObjectURL(p.blob);img.alt=p.name;img.loading='lazy';img.onload=()=>URL.revokeObjectURL(img.src);img.onclick=()=>openPhoto(filtered.indexOf(p));const footer=document.createElement('footer');const name=document.createElement('span');name.textContent=p.name;const del=document.createElement('button');del.textContent='Excluir';del.setAttribute('aria-label','Excluir '+p.name);del.onclick=()=>{if(confirm('Excluir esta foto do álbum?')){const r=transaction('readwrite').delete(p.id);r.onsuccess=refresh}};footer.append(name,del);tile.append(img,footer);$('#gallery').append(tile)}}
-$('#files').onchange=async e=>{const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));for(const file of files){await new Promise(resolve=>{const r=transaction('readwrite').add({name:file.name.replace(/\.[^.]+$/,''),blob:file,lastModified:Date.now()});r.onsuccess=resolve;r.onerror=resolve})}e.target.value='';refresh()};
-$('#search').oninput=render;$('#all').onclick=()=>{category='';render()};
-function openPhoto(i){if(!filtered.length)return;index=(i+filtered.length)%filtered.length;$('#full').src=URL.createObjectURL(filtered[index].blob);$('#viewer').showModal()}function move(n){const old=$('#full').src;openPhoto((index+n+filtered.length)%filtered.length);URL.revokeObjectURL(old)}
-$('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);$('#close').onclick=()=>$('#viewer').close();$('#viewer').onclose=()=>{URL.revokeObjectURL($('#full').src);$('#full').removeAttribute('src')};document.addEventListener('keydown',e=>{if(!$('#viewer').open)return;if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1)});
+    const img=document.createElement('img');img.alt=it.name;img.loading='lazy';img.src=srcOf(it);
+    img.onerror=()=>{failed++;info()};img.onclick=()=>openViewer(i);
+    const f=document.createElement('footer');f.textContent=it.name.replace(/[-_]/g,' ');
+    tile.append(img,f);g.append(tile);
+  });
+  $('#empty').hidden=all.length>0;info();
+}
+function loadUser(){return new Promise(res=>{if(!db){res();return}const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>{userPhotos=r.result;render();res()};r.onerror=()=>res()})}
+function idbAdd(rec){return new Promise(res=>{if(!db)return res(null);const r=db.transaction(store,'readwrite').objectStore(store).add(rec);r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)})}
+function idbDelete(id){return new Promise(res=>{if(!db)return res();const r=db.transaction(store,'readwrite').objectStore(store).delete(id);r.onsuccess=r.onerror=()=>res()})}
+render();
+try{const req=indexedDB.open(dbName,1);req.onupgradeneeded=()=>req.result.createObjectStore(store,{keyPath:'id',autoIncrement:true});req.onsuccess=()=>{db=req.result;loadUser()}}catch(e){}
+
+$('#files').onchange=async e=>{const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));for(const f of files)await idbAdd({name:f.name.replace(/\.[^.]+$/,''),blob:f,lastModified:Date.now()});e.target.value='';loadUser()};
+$('#search').oninput=render;$('#all').onclick=()=>{$('#search').value='';render()};
+
+function toast(msg){const t=document.createElement('div');t.id='toast';t.textContent=msg;const old=$('#toast');if(old)old.remove();(editor.open?editor:viewer.open?viewer:document.body).append(t);setTimeout(()=>t.remove(),2400)}
+
+/* ---------- visualizador ---------- */
+const viewer=$('#viewer'),editor=$('#editor'),full=$('#full'),stage=$('#stage'),menu=$('#menu');
+function openViewer(i){index=i;show();if(!viewer.open)viewer.showModal()}
+function show(){const it=list[index];if(!it)return;full.style.transition='none';full.style.transform='';full.style.opacity='1';full.src=srcOf(it);full.alt=it.name;menu.hidden=true}
+function slide(n){
+  if(list.length<2){full.style.transition='transform .15s';full.style.transform='';return}
+  full.style.transition='transform .15s,opacity .15s';full.style.transform='translateX('+(n>0?-100:100)+'%)';full.style.opacity='0';
+  setTimeout(()=>{index=(index+n+list.length)%list.length;show();full.style.transform='translateX('+(n>0?60:-60)+'%)';full.style.opacity='0';void full.offsetWidth;full.style.transition='transform .15s,opacity .15s';full.style.transform='';full.style.opacity='1'},150);
+}
+let tx=0,ty=0,dx=0,dy=0,drag=false,mode='';
+stage.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;tx=e.touches[0].clientX;ty=e.touches[0].clientY;dx=0;dy=0;mode='';drag=true;full.style.transition='none'},{passive:true});
+stage.addEventListener('touchmove',e=>{
+  if(!drag)return;dx=e.touches[0].clientX-tx;dy=e.touches[0].clientY-ty;
+  if(!mode&&(Math.abs(dx)>8||Math.abs(dy)>8))mode=Math.abs(dy)>Math.abs(dx)?'v':'h';
+  if(mode==='h')full.style.transform='translateX('+dx+'px)';
+  else if(mode==='v')full.style.transform='translateY('+Math.max(0,dy)+'px)';
+},{passive:true});
+stage.addEventListener('touchend',()=>{
+  if(!drag)return;drag=false;
+  if(mode==='h'&&Math.abs(dx)>60)slide(dx<0?1:-1);
+  else if(mode==='v'&&dy>110)viewer.close();
+  else{full.style.transition='transform .15s';full.style.transform=''}
+});
+stage.onclick=()=>{menu.hidden=true};
+document.addEventListener('keydown',e=>{if(!viewer.open||editor.open)return;if(e.key==='ArrowLeft')slide(-1);if(e.key==='ArrowRight')slide(1)});
+$('#more').onclick=e=>{e.stopPropagation();menu.hidden=!menu.hidden};
+menu.onclick=e=>{const b=e.target.closest('button');if(!b)return;menu.hidden=true;({edit:openEditor,save:saveCurrent,del:()=>{$('#confirm').hidden=false}})[b.dataset.a]()};
+
+/* ---------- apagar ---------- */
+$('#cNo').onclick=()=>{$('#confirm').hidden=true};
+$('#cYes').onclick=async()=>{
+  $('#confirm').hidden=true;const it=list[index];if(!it)return;
+  if(it.kind==='b'){hiddenSet.add(it.key);saveHidden()}
+  else{await idbDelete(it.id);userPhotos=userPhotos.filter(p=>p.id!==it.id);const u=urls.get(it.key);if(u){URL.revokeObjectURL(u);urls.delete(it.key)}}
+  render();
+  if(!list.length){viewer.close();return}
+  index=Math.min(index,list.length-1);show();toast('Foto apagada');
+};
+
+/* ---------- salvar no celular ---------- */
+function b64FromBlob(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=rej;r.readAsDataURL(blob)})}
+function extOf(t){return t==='image/webp'?'.webp':t==='image/png'?'.png':'.jpg'}
+async function blobOf(it){
+  if(it.kind==='u')return it.blob;
+  const path='fotos/'+it.file,type=it.file.endsWith('.webp')?'image/webp':it.file.endsWith('.png')?'image/png':'image/jpeg';
+  if(bridge){const b64=bridge.readAsset(path);if(!b64)throw new Error('asset');const bin=atob(b64),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type})}
+  return (await fetch(path)).blob();
+}
+async function saveCurrent(){
+  const it=list[index];if(!it)return;
+  try{
+    if(bridge){
+      let where='';
+      if(it.kind==='b')where=bridge.saveAsset('fotos/'+it.file,it.name);
+      else where=bridge.saveImage(await b64FromBlob(it.blob),it.name,it.blob.type||'image/jpeg');
+      toast(where?'Salva em '+where:'Não foi possível salvar');
+    }else{
+      const blob=await blobOf(it),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=it.name+extOf(blob.type);document.body.append(a);a.click();a.remove();toast('Download iniciado');
+    }
+  }catch(e){toast('Não foi possível salvar')}
+}
+
+/* ---------- editar ---------- */
+let ed=null;
+function syncControls(){$('#sBri').value=ed.bri;$('#sCon').value=ed.con;$('#sSat').value=ed.sat;$('#bw').classList.toggle('on',ed.bw);$('#flip').classList.toggle('on',ed.flip)}
+async function openEditor(){
+  const it=list[index];if(!it)return;
+  try{
+    const url=URL.createObjectURL(await blobOf(it)),img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+    ed={img,url,item:it,rot:0,flip:false,bw:false,bri:100,con:100,sat:100};
+    syncControls();editor.showModal();draw();
+  }catch(e){toast('Não foi possível abrir a foto para editar')}
+}
+function paint(cv,max){
+  const img=ed.img,sw=img.naturalWidth,sh=img.naturalHeight,rotated=ed.rot%180!==0;
+  const w=rotated?sh:sw,h=rotated?sw:sh,k=Math.min(1,max/Math.max(w,h));
+  cv.width=Math.round(w*k);cv.height=Math.round(h*k);
+  const c=cv.getContext('2d');c.save();
+  if('filter' in c)c.filter='brightness('+ed.bri+'%) contrast('+ed.con+'%) saturate('+ed.sat+'%) grayscale('+(ed.bw?1:0)+')';
+  c.translate(cv.width/2,cv.height/2);c.scale(ed.flip?-1:1,1);c.rotate(ed.rot*Math.PI/180);
+  c.drawImage(img,-sw*k/2,-sh*k/2,sw*k,sh*k);c.restore();
+}
+function draw(){paint($('#canvas'),1000)}
+function closeEditor(){if(ed&&ed.url)URL.revokeObjectURL(ed.url);ed=null;editor.close()}
+$('#rotL').onclick=()=>{ed.rot=(ed.rot+270)%360;draw()};
+$('#rotR').onclick=()=>{ed.rot=(ed.rot+90)%360;draw()};
+$('#flip').onclick=()=>{ed.flip=!ed.flip;syncControls();draw()};
+$('#bw').onclick=()=>{ed.bw=!ed.bw;syncControls();draw()};
+$('#sBri').oninput=e=>{ed.bri=+e.target.value;draw()};
+$('#sCon').oninput=e=>{ed.con=+e.target.value;draw()};
+$('#sSat').oninput=e=>{ed.sat=+e.target.value;draw()};
+$('#eReset').onclick=()=>{Object.assign(ed,{rot:0,flip:false,bw:false,bri:100,con:100,sat:100});syncControls();draw()};
+$('#eCancel').onclick=closeEditor;
+$('#eSave').onclick=()=>{
+  const cv=document.createElement('canvas');paint(cv,4096);
+  cv.toBlob(async blob=>{
+    if(!blob){toast('Não foi possível salvar a edição');return}
+    const name=ed.item.name.replace(/ \(editada\)$/,'')+' (editada)';
+    const id=await idbAdd({name,blob,lastModified:Date.now()});
+    closeEditor();$('#search').value='';await loadUser();
+    const i=list.findIndex(x=>x.key==='u:'+id);if(i>=0){index=i;show()}
+    toast('Cópia editada salva na galeria');
+  },'image/jpeg',0.92);
+};
+
+window.irisBack=()=>{
+  if(!$('#confirm').hidden){$('#confirm').hidden=true;return true}
+  if(editor.open){closeEditor();return true}
+  if(!menu.hidden){menu.hidden=true;return true}
+  if(viewer.open){viewer.close();return true}
+  return false;
+};
 </script></body></html>
