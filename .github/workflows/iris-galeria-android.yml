@@ -39,34 +39,6 @@ jobs:
           gradle --version
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls -la iris-galeria/android
-      - name: Instalar fotos do pacote na galeria
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, shutil, zipfile
-          from pathlib import Path
-          archive = Path("iris-galeria-personagens-selecionadas.zip")
-          if not archive.is_file():
-              raise SystemExit("Pacote de fotos não encontrado na raiz do repositório")
-          target = Path("iris-galeria/android/app/src/main/assets/fotos")
-          target.mkdir(parents=True, exist_ok=True)
-          temp = Path("/tmp/iris-fotos-extraidas")
-          shutil.rmtree(temp, ignore_errors=True)
-          temp.mkdir(parents=True)
-          with zipfile.ZipFile(archive) as z:
-              z.extractall(temp)
-          images = sorted(temp.rglob("*.webp"))
-          if not images:
-              raise SystemExit("Nenhuma imagem WebP encontrada no ZIP")
-          manifest = []
-          for source in images:
-              dest = target / source.name
-              shutil.copy2(source, dest)
-              manifest.append({"file": dest.name, "name": source.stem})
-          (target / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-          print(f"{len(manifest)} fotos instaladas em {target}")
-          PY
-          test "$(find iris-galeria/android/app/src/main/assets/fotos -maxdepth 1 -name '*.webp' | wc -l)" -gt 0
       - name: Compilar APK
         working-directory: iris-galeria/android
         shell: bash
