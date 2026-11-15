@@ -82,6 +82,7 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 .etabs{display:flex;justify-content:space-around;border-top:.5px solid #333;margin:6px -16px 0;padding:10px 4px max(26px,calc(10px + env(safe-area-inset-bottom)));background:#1b1b1f}
 .etabs button{background:transparent;color:#999;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;padding:4px 10px}.etabs button.on{color:#fff}
 /* melhorias visuais */
+.grid.alb3{grid-template-columns:repeat(3,1fr);gap:4px;padding-top:4px}.grid.alb3 .tile{border-radius:8px}.grid.alb3 .tile.wide{grid-column:auto}.grid.alb3 .tile.wide img{aspect-ratio:3/4;object-position:center 22%}
 #ttl{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #top .ibtn{flex:none}
 #albMenu{position:fixed;right:12px;top:calc(max(34px,env(safe-area-inset-top)) + 52px);width:220px;z-index:41;background:var(--s2);border:.5px solid var(--bd);border-radius:18px;padding:6px;box-shadow:0 10px 30px #0008}
@@ -417,9 +418,10 @@ function render(){
     const keys=grp.items.map(x=>x.key);head._keys=keys;
     ck.onclick=()=>toggleGroup(keys);
     head.append(nm,ck);
-    const grid=document.createElement('div');grid.className='grid';
+    const inA=!!albumOpen&&!inTrash();
+    const grid=document.createElement('div');grid.className='grid'+(inA?' alb3':'');
     for(const it of grp.items)grid.append(buildTile(it,n++));
-    sec.append(head,grid);g.append(sec);
+    if(inA)sec.append(grid);else sec.append(head,grid);g.append(sec);
   }
   refreshSel();
   const none=list.length===0;$('#empty').hidden=!none;
@@ -693,7 +695,7 @@ function scrubGeom(){const vh=innerHeight,top=130,h=vh-top-(104+6);return{top,h:
 function scrubLabel(y){let n='';document.querySelectorAll('.grp').forEach(g=>{if(g.getBoundingClientRect().top+scrollY<=y+140){const b=g.querySelector('.sec b');if(b)n=b.textContent}});return n}
 function scrubPos(){const g=scrubGeom();sHandle.style.top=Math.min(g.h-46,Math.max(0,scrollY/g.max*(g.h-46)))+'px'}
 function scrubUpdate(){
-  const g=scrubGeom(),ok=!(tab==='albums'&&!albumOpen)&&!inTrash()&&!selMode&&document.documentElement.scrollHeight>innerHeight*2.2;
+  const g=scrubGeom(),ok=!albumOpen&&!(tab==='albums')&&!inTrash()&&!selMode&&document.documentElement.scrollHeight>innerHeight*2.2;
   scrub.classList.toggle('on',ok);return ok;
 }
 window.addEventListener('scroll',()=>{
