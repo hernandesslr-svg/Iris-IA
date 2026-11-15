@@ -34,7 +34,7 @@ dialog::backdrop{background:#000}
 .tools label{display:flex;align-items:center;gap:10px;margin:6px 0;color:#d8cde8;font-size:.95rem}.tools label b{width:84px;font-weight:600}.tools input[type=range]{flex:1;accent-color:#a55df5}
 header{position:relative}
 #menuBtn{position:absolute;top:40px;right:16px;width:46px;height:46px;padding:0;border-radius:12px;background:#30253e;font-size:1.5rem;line-height:1}
-#banner{background:#3a2560;border:1px solid #a55df5;border-radius:14px;padding:12px 14px;margin:0 0 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#banner,.bannerx{background:#3a2560;border:1px solid #a55df5;border-radius:14px;padding:12px 14px;margin:0 0 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 #settings .body{flex:1;overflow:auto;padding-bottom:30px}
 .sec{background:#1b1329;border:1px solid #3d2e55;border-radius:16px;padding:16px;margin:14px 16px}
 .sec h3{margin:0 0 8px}.sec p{margin:6px 0}.sec .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -44,6 +44,7 @@ header{position:relative}
 </style></head><body>
 <header><button id="menuBtn" aria-label="Menu e configurações">☰</button><main><h1>✦ Iris Galeria</h1><p>Seu álbum privado de imagens e personagens. As fotos ficam armazenadas neste aparelho.</p></main></header>
 <main>
+<div id="banner2" class="bannerx" hidden><span id="banner2Text"></span><button id="banner2Btn">Baixar</button></div>
 <div id="banner" hidden><span id="bannerText"></span><button id="bannerBtn">Atualizar agora</button></div>
 <div class="toolbar"><label class="upload" for="files">＋ Adicionar fotos</label><input id="files" type="file" accept="image/*" multiple><input id="search" type="search" placeholder="Buscar por nome..."><button id="all" class="secondary">Todas</button></div>
 <p id="info"></p>
@@ -62,6 +63,7 @@ header{position:relative}
   <div class="vbar"><button id="sBack" class="icon" aria-label="Voltar">←</button><span>Configurações</span><span style="width:60px"></span></div>
   <div class="body">
     <div class="sec" id="secSec"><h3>🔒 Bloqueio do aplicativo</h3><p id="lockState"></p><div class="row"><button id="lockBtn"></button></div></div>
+    <div class="sec" id="onlSec"><h3>🌐 Fotos online</h3><p id="onlInfo">Baixa fotos novas sem precisar instalar outra versão do app.</p><div class="row"><button id="onlBtn">Buscar fotos novas</button></div></div>
     <div class="sec" id="updSec"><h3>⬇ Atualização</h3><p id="updInfo">Toque para ver se há versão nova.</p><div class="row"><button id="chk">Buscar atualização</button></div></div>
     <div class="sec"><h3>Sobre</h3><p>Iris Galeria · versão <span id="ver"></span></p></div>
   </div>
@@ -92,7 +94,7 @@ let hiddenSet=new Set();
 try{hiddenSet=new Set(JSON.parse(localStorage.getItem('iris-hidden')||'[]'))}catch(e){}
 function saveHidden(){try{localStorage.setItem('iris-hidden',JSON.stringify([...hiddenSet]))}catch(e){}}
 const bundled=(window.IRIS_FOTOS||[]).map(it=>({key:'b:'+it.file,kind:'b',name:it.name,file:it.file}));
-function userItems(){return userPhotos.slice().reverse().map(p=>({key:'u:'+p.id,kind:'u',id:p.id,name:p.name,blob:p.blob}))}
+function userItems(){return userPhotos.slice().reverse().map(p=>({key:'u:'+p.id,kind:'u',id:p.id,name:p.name,blob:p.blob,onlineKey:p.onlineKey}))}
 function allItems(){return userItems().concat(bundled.filter(b=>!hiddenSet.has(b.key)))}
 function srcOf(it){if(it.kind==='b')return 'fotos/'+it.file;let u=urls.get(it.key);if(!u){u=URL.createObjectURL(it.blob);urls.set(it.key,u)}return u}
 function info(){$('#info').textContent='Versão '+VERSION+' · '+list.length+' foto(s)'+(failed?' · '+failed+' com erro':'')}
@@ -183,7 +185,7 @@ $('#cNo').onclick=()=>{$('#confirm').hidden=true};
 $('#cYes').onclick=async()=>{
   $('#confirm').hidden=true;const it=list[index];if(!it)return;
   if(it.kind==='b'){hiddenSet.add(it.key);saveHidden()}
-  else{await idbDelete(it.id);userPhotos=userPhotos.filter(p=>p.id!==it.id);const u=urls.get(it.key);if(u){URL.revokeObjectURL(u);urls.delete(it.key)}}
+  else{if(it.onlineKey){onlineDeleted.add(it.onlineKey);saveOnlineDeleted()}await idbDelete(it.id);userPhotos=userPhotos.filter(p=>p.id!==it.id);const u=urls.get(it.key);if(u){URL.revokeObjectURL(u);urls.delete(it.key)}}
   render();
   if(!list.length){viewer.close();return}
   index=Math.min(index,list.length-1);show();toast('Foto apagada');
@@ -273,6 +275,49 @@ window.irisLockEvent=r=>{
   else if(r.event==='nosecure')toast('Primeiro defina uma senha, padrão ou digital nas configurações do celular');
   else if(r.event==='failed')toast('Não foi possível confirmar');
 };
+
+/* ---------- fotos online (sem precisar de APK novo) ---------- */
+const ONLINE='https://raw.githubusercontent.com/hernandesslr-svg/Iris-IA/iris-fotos/';
+let onlineDeleted=new Set();
+try{onlineDeleted=new Set(JSON.parse(localStorage.getItem('iris-online-deleted')||'[]'))}catch(e){}
+function saveOnlineDeleted(){try{localStorage.setItem('iris-online-deleted',JSON.stringify([...onlineDeleted]))}catch(e){}}
+let onlinePending=[],onlineBusy=false,onlineManual=false;
+function setOnl(t){$('#onlInfo').textContent=t}
+async function checkOnline(manual){
+  if(onlineBusy)return;onlineManual=!!manual;
+  try{
+    setOnl('Verificando…');
+    const r=await fetch(ONLINE+'manifest.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const man=await r.json();
+    const have=new Set(userPhotos.map(p=>p.onlineKey).filter(Boolean));
+    onlinePending=man.filter(m=>m&&m.file&&!have.has(m.file)&&!onlineDeleted.has(m.file));
+    if(onlinePending.length){
+      const t=onlinePending.length+' foto(s) nova(s) disponível(is).';
+      $('#banner2Text').textContent=t;$('#banner2').hidden=false;setOnl(t);$('#onlBtn').textContent='Baixar fotos novas';
+    }else{$('#banner2').hidden=true;setOnl('Você já tem todas as fotos.');$('#onlBtn').textContent='Buscar fotos novas';if(manual)toast('Você já tem todas as fotos')}
+  }catch(e){setOnl('Não consegui verificar agora (sem internet?).');if(manual)toast('Não consegui buscar as fotos novas')}
+}
+async function downloadOnline(){
+  if(onlineBusy||!onlinePending.length)return;onlineBusy=true;let ok=0;
+  const list=onlinePending.slice();
+  for(let i=0;i<list.length;i++){
+    const m=list[i];setOnl('Baixando '+(i+1)+' de '+list.length+'…');$('#banner2Text').textContent='Baixando '+(i+1)+' de '+list.length+'…';$('#banner2Btn').hidden=true;
+    try{
+      const r=await fetch(ONLINE+m.file);if(!r.ok)throw new Error('HTTP '+r.status);
+      const blob=new Blob([await r.arrayBuffer()],{type:'image/webp'});
+      const id=await idbAdd({name:m.name||m.file,blob,lastModified:Date.now(),onlineKey:m.file});
+      if(id!==null){ok++;if(m.replaces){hiddenSet.add('b:'+m.replaces);saveHidden()}}
+    }catch(e){}
+  }
+  onlineBusy=false;$('#banner2Btn').hidden=false;$('#banner2').hidden=true;onlinePending=[];
+  await loadUser();
+  const msg=ok===list.length?ok+' foto(s) adicionada(s)':ok+' de '+list.length+' baixadas; tente de novo';
+  setOnl(msg);toast(msg);$('#onlBtn').textContent='Buscar fotos novas';
+}
+$('#onlBtn').onclick=()=>{if(onlinePending.length)downloadOnline();else checkOnline(true)};
+$('#banner2Btn').onclick=downloadOnline;
+setTimeout(()=>checkOnline(false),3000);
 
 /* ---------- configurações ---------- */
 function refreshSettings(){

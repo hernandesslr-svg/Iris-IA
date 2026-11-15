@@ -16,3 +16,6 @@ Cada build na branch `iris-galeria` publica o APK na release `galeria-latest`. N
 
 ## Bloqueio
 O menu ☰ permite ativar o bloqueio usando a senha, o padrão ou a digital que o próprio celular já usa. Exige tela de bloqueio configurada no aparelho.
+
+## Fotos online
+Fotos novas podem ser enviadas sem gerar APK: ficam na branch `iris-fotos` (arquivo `manifest.json` + pasta `fotos/`). O app baixa as que ainda não tem (menu ☰ > Fotos online, e aviso ao abrir). Entradas com `replaces` trocam a versão borrada embutida no app.
