@@ -38,7 +38,8 @@ public class IrisShareProvider extends ContentProvider {
     @Override public boolean onCreate() { return true; }
 
     @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
-        return ParcelFileDescriptor.open(fileFor(uri), ParcelFileDescriptor.MODE_READ_ONLY);
+        int m = mode != null && mode.contains("w") ? ParcelFileDescriptor.parseMode(mode) : ParcelFileDescriptor.MODE_READ_ONLY;
+        return ParcelFileDescriptor.open(fileFor(uri), m);
     }
 
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
@@ -61,7 +62,10 @@ public class IrisShareProvider extends ContentProvider {
 
     @Override public String getType(Uri uri) {
         String n = String.valueOf(uri.getLastPathSegment()).toLowerCase();
-        return n.endsWith(".webp") ? "image/webp" : n.endsWith(".png") ? "image/png" : "image/jpeg";
+        return n.endsWith(".webp") ? "image/webp" : n.endsWith(".png") ? "image/png"
+                : n.endsWith(".mp4") ? "video/mp4" : n.endsWith(".webm") ? "video/webm"
+                : n.endsWith(".3gp") ? "video/3gpp" : n.endsWith(".mov") ? "video/quicktime"
+                : n.endsWith(".mkv") ? "video/x-matroska" : "image/jpeg";
     }
 
     @Override public Uri insert(Uri uri, ContentValues values) { return null; }
