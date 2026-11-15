@@ -3,8 +3,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-  schedule:
-    - cron: '17 9 * * *'
 permissions:
   contents: read
 jobs:
@@ -38,6 +36,7 @@ jobs:
         run: |
           set -o pipefail
           gradle :app:assembleDebug --no-daemon --stacktrace --console=plain --refresh-dependencies 2>&1 | tee build.log
+          test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Diagnosticar falha
         if: failure()
         run: |
