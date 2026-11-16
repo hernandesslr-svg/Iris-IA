@@ -303,7 +303,9 @@ function daysLeft(it){return Math.max(0,TRASH_DAYS-Math.floor((Date.now()-trash[
 function srcOf(it){if(it.kind==='b')return 'fotos/'+it.file;let u=urls.get(it.key);if(!u){u=URL.createObjectURL(it.blob);urls.set(it.key,u)}return u}
 function thumbOf(it){if(!isVideo(it))return srcOf(it);if(!it.poster)return '';const k=it.key+':p';let u=urls.get(k);if(!u){u=URL.createObjectURL(it.poster);urls.set(k,u)}return u}
 function fmtDur(s){s=Math.round(s||0);const m=Math.floor(s/60),r=s%60;return m+':'+String(r).padStart(2,'0')}
-function albumName(a){if(a.trash)return 'Lixeira';return a.auto?(a.auto==='__fav'?'Favoritas':a.auto):((albums.find(x=>x.id===a.id)||{}).name||'Álbum')}
+let albAlias={},albHidden=[];try{albAlias=JSON.parse(localStorage.getItem('iris-albalias')||'{}')||{};albHidden=JSON.parse(localStorage.getItem('iris-albhidden')||'[]')||[]}catch(e){}
+const saveAlias=()=>{try{localStorage.setItem('iris-albalias',JSON.stringify(albAlias));localStorage.setItem('iris-albhidden',JSON.stringify(albHidden))}catch(e){}};
+function albumName(a){if(a.trash)return 'Lixeira';return a.auto?(albAlias[a.auto]||(a.auto==='__fav'?'Favoritas':a.auto)):((albums.find(x=>x.id===a.id)||{}).name||'Álbum')}
 function albumItems(a,photos){
   if(a.auto==='__fav')return photos.filter(it=>favs.has(it.key));
   if(a.auto)return photos.filter(it=>catOf(it.name)===a.auto);
@@ -345,8 +347,8 @@ function renderAlbums(g,all,q){
   const cards=[];
   albums.forEach(al=>{const items=albumItems({id:al.id},photos);cards.push({a:{id:al.id},name:al.name,items,user:al})});
   const favItems=photos.filter(it=>favs.has(it.key));
-  if(favItems.length)cards.push({a:{auto:'__fav'},name:'Favoritas',items:favItems});
-  [...CATS.map(c=>c[0]),'Outras'].forEach(l=>{const items=photos.filter(it=>catOf(it.name)===l);if(items.length)cards.push({a:{auto:l},name:l,items})});
+  if(favItems.length&&!albHidden.includes('__fav'))cards.push({a:{auto:'__fav'},name:albAlias['__fav']||'Favoritas',items:favItems});
+  [...CATS.map(c=>c[0]),'Outras'].forEach(l=>{const items=photos.filter(it=>catOf(it.name)===l);if(items.length&&!albHidden.includes(l))cards.push({a:{auto:l},name:albAlias[l]||l,items})});
   const shown=cards.filter(c=>norm(c.name).includes(q));
   albumCount=shown.length;
   if(!q){
@@ -407,6 +409,7 @@ function render(){
     if(favs.has(it.key)&&!inTrash()){const st=document.createElement('span');st.className='star';st.textContent='★';tile.append(st)}
     return tile;
   };
+  if(albumOpen&&!inTrash()){const all2=[...groups.values()].flatMap(x=>x.items);groups.clear();groups.set('alb',{n:'',items:all2})}
   let n=0;
   for(const grp of groups.values()){
     const sec=document.createElement('section');sec.className='grp';
@@ -523,12 +526,14 @@ $('#plus').addEventListener('click',()=>{pendAlb=null},true);
 $('#albAdd').onclick=()=>{if(!albumOpen)return;pendAlb=albumOpen.id||null;$('#fPhotos').click()};
 $('#albPlay').onclick=()=>{if(!list.some(it=>!isVideo(it))){toast('O álbum não tem fotos');return}ssStart()};
 function closeAlbMenu(){$('#albMenu').hidden=true;$('#albBack').hidden=true}
-$('#albMore').onclick=()=>{const u=!!(albumOpen&&albumOpen.id);$('#albMenu [data-a=ren]').hidden=!u;$('#albMenu [data-a=del]').hidden=!u;$('#albMenu').hidden=false;$('#albBack').hidden=false};
+$('#albMore').onclick=()=>{$('#albMenu').hidden=false;$('#albBack').hidden=false};
 $('#albBack').onclick=closeAlbMenu;
-$('#albMenu').onclick=e=>{const b=e.target.closest('button');if(!b||!albumOpen)return;closeAlbMenu();if(b.dataset.a==='sel'){selMode=true;document.body.classList.add('sel');refreshSel();return}const al=albums.find(x=>x.id===albumOpen.id);if(!al)return;
-  ({ren:()=>askName(n=>{al.name=n;saveAlbums();render();toast('Álbum renomeado')},al.name),
-    sel:()=>{selMode=true;document.body.classList.add('sel');refreshSel()},
-    del:()=>askConfirm('Apagar o álbum "'+al.name+'"?','As fotos continuam na galeria.','Apagar',()=>{albums=albums.filter(x=>x.id!==al.id);saveAlbums();albumOpen=null;render();toast('Álbum apagado')})})[b.dataset.a]()};
+$('#albMenu').onclick=e=>{const b=e.target.closest('button');if(!b||!albumOpen)return;closeAlbMenu();const a=b.dataset.a;
+  if(a==='sel'){selMode=true;document.body.classList.add('sel');refreshSel();return}
+  const user=albumOpen.id?albums.find(x=>x.id===albumOpen.id):null,key=albumOpen.auto,nm=albumName(albumOpen);
+  if(!user&&!key)return;
+  if(a==='ren')askName(n=>{if(user)user.name=n;else{albAlias[key]=n;saveAlias()}if(user)saveAlbums();render();toast('Álbum renomeado')},nm);
+  else askConfirm('Apagar o álbum "'+nm+'"?','As fotos continuam na galeria.','Apagar',()=>{if(user){albums=albums.filter(x=>x.id!==user.id);saveAlbums()}else{if(!albHidden.includes(key))albHidden.push(key);saveAlias()}albumOpen=null;render();toast('Álbum apagado')})};
 
 /* ---------- importar de um ZIP ---------- */
 async function readZip(file){
