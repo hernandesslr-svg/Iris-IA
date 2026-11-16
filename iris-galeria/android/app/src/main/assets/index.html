@@ -82,7 +82,7 @@ button.danger.solid,#confirm button.danger,.ov button.danger{background:#d6405a;
 .etabs{display:flex;justify-content:space-around;border-top:.5px solid #333;margin:6px -16px 0;padding:10px 4px max(26px,calc(10px + env(safe-area-inset-bottom)));background:#1b1b1f}
 .etabs button{background:transparent;color:#999;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;padding:4px 10px}.etabs button.on{color:#fff}
 /* melhorias visuais */
-.grid.alb3{grid-template-columns:repeat(3,1fr);gap:4px;padding-top:4px}.grid.alb3 .tile{border-radius:8px}.grid.alb3 .tile.wide{grid-column:auto}.grid.alb3 .tile.wide img{aspect-ratio:3/4;object-position:center 22%}
+.grid.alb3{grid-template-columns:repeat(3,1fr);gap:4px;padding-top:4px}.grid.alb3 .tile{border-radius:8px}.grid.alb3 .tile,.grid.alb3 .tile.wide{grid-column:auto!important}.grid.alb3 .tile img,.grid.alb3 .tile.wide img,.grid.alb3 .noimg{aspect-ratio:3/4!important;object-fit:cover;object-position:center 22%}
 #ttl{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #top .ibtn{flex:none}
 #albMenu{position:fixed;right:12px;top:calc(max(34px,env(safe-area-inset-top)) + 52px);width:220px;z-index:41;background:var(--s2);border:.5px solid var(--bd);border-radius:18px;padding:6px;box-shadow:0 10px 30px #0008}
@@ -376,7 +376,7 @@ function render(){
   const pool=inTrash()?trashItems():all;
   for(const k of [...sel])if(!pool.some(x=>x.key===k))sel.delete(k);
   document.body.classList.toggle('inalb',!!albumOpen);document.body.classList.toggle('intrash',inTrash());
-  $('#ttl').textContent=inTrash()?'Lixeira':albumOpen?albumName(albumOpen):'Galeria privada';$('#trashEmpty').hidden=!inTrash();$('#colsBtn').hidden=inTrash()||!!albumOpen;$('#menuBtn').hidden=!!albumOpen&&!inTrash();{const ia=!!albumOpen&&!inTrash(),ua=ia&&!!albumOpen.id;$('#albPlay').hidden=!ia;$('#albAdd').hidden=!ua;$('#albMore').hidden=!ua}
+  $('#ttl').textContent=inTrash()?'Lixeira':albumOpen?albumName(albumOpen):'Galeria privada';$('#trashEmpty').hidden=!inTrash();$('#colsBtn').hidden=inTrash()||!!albumOpen;$('#menuBtn').hidden=!!albumOpen&&!inTrash();{const ia=!!albumOpen&&!inTrash(),ua=ia&&!!albumOpen.id;$('#albPlay').hidden=!ia;$('#albAdd').hidden=!ia;$('#albMore').hidden=!ia}
   $('#backBtn').hidden=!albumOpen;$('#lockIc').hidden=!!albumOpen;
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   const g=$('#gallery');g.replaceChildren();g.className='';
@@ -520,12 +520,12 @@ for(const id of ['#fPhotos','#fVideos','#fCam'])$(id).onchange=async e=>{
     if(al&&r.keys.length){al.keys.push(...r.keys);saveAlbums();render();toast(r.keys.length+(r.keys.length===1?' foto adicionada ao álbum':' fotos adicionadas ao álbum'))}}
 };
 $('#plus').addEventListener('click',()=>{pendAlb=null},true);
-$('#albAdd').onclick=()=>{if(albumOpen&&albumOpen.id){pendAlb=albumOpen.id;$('#fPhotos').click()}};
+$('#albAdd').onclick=()=>{if(!albumOpen)return;pendAlb=albumOpen.id||null;$('#fPhotos').click()};
 $('#albPlay').onclick=()=>{if(!list.some(it=>!isVideo(it))){toast('O álbum não tem fotos');return}ssStart()};
 function closeAlbMenu(){$('#albMenu').hidden=true;$('#albBack').hidden=true}
-$('#albMore').onclick=()=>{$('#albMenu').hidden=false;$('#albBack').hidden=false};
+$('#albMore').onclick=()=>{const u=!!(albumOpen&&albumOpen.id);$('#albMenu [data-a=ren]').hidden=!u;$('#albMenu [data-a=del]').hidden=!u;$('#albMenu').hidden=false;$('#albBack').hidden=false};
 $('#albBack').onclick=closeAlbMenu;
-$('#albMenu').onclick=e=>{const b=e.target.closest('button');if(!b||!albumOpen||!albumOpen.id)return;closeAlbMenu();const al=albums.find(x=>x.id===albumOpen.id);if(!al)return;
+$('#albMenu').onclick=e=>{const b=e.target.closest('button');if(!b||!albumOpen)return;closeAlbMenu();if(b.dataset.a==='sel'){selMode=true;document.body.classList.add('sel');refreshSel();return}const al=albums.find(x=>x.id===albumOpen.id);if(!al)return;
   ({ren:()=>askName(n=>{al.name=n;saveAlbums();render();toast('Álbum renomeado')},al.name),
     sel:()=>{selMode=true;document.body.classList.add('sel');refreshSel()},
     del:()=>askConfirm('Apagar o álbum "'+al.name+'"?','As fotos continuam na galeria.','Apagar',()=>{albums=albums.filter(x=>x.id!==al.id);saveAlbums();albumOpen=null;render();toast('Álbum apagado')})})[b.dataset.a]()};
