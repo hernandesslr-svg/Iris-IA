@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
         locked = isLockEnabled() && isDeviceSecure();
         webView = new WebView(this);
         setContentView(webView);
+        askPermissions();
         webView.setBackgroundColor(0xFF141414);
         darkBars();
         WebSettings settings = webView.getSettings();
@@ -155,8 +156,37 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Pede, uma vez, as permissões do aplicativo (câmera, fotos e vídeos, notificações). */
+    private void askPermissions() {
+        try {
+            if (Build.VERSION.SDK_INT < 23) return;
+            ArrayList<String> need = new ArrayList<>();
+            String[] all;
+            if (Build.VERSION.SDK_INT >= 33) {
+                all = new String[]{"android.permission.CAMERA", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO", "android.permission.POST_NOTIFICATIONS"};
+            } else if (Build.VERSION.SDK_INT >= 29) {
+                all = new String[]{"android.permission.CAMERA", "android.permission.READ_EXTERNAL_STORAGE"};
+            } else {
+                all = new String[]{"android.permission.CAMERA", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"};
+            }
+            for (String p : all) {
+                if (checkSelfPermission(p) != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add(p);
+            }
+            if (!need.isEmpty() && !prefs().getBoolean("perm_asked", false)) {
+                prefs().edit().putBoolean("perm_asked", true).apply();
+                requestPermissions(need.toArray(new String[0]), 2001);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     /** Abre a câmera do celular e devolve a foto tirada para a página. */
     private void startCamera() throws Exception {
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission("android.permission.CAMERA") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.CAMERA"}, 2002);
+            if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
+            return;
+        }
         File f = new File(IrisShareProvider.dir(this), "foto-" + System.currentTimeMillis() + ".jpg");
         f.createNewFile();
         cameraUri = new Uri.Builder().scheme("content").authority(IrisShareProvider.AUTHORITY).appendPath(f.getName()).build();
